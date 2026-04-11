@@ -13,7 +13,6 @@ export const DEFAULT_WIDGETS: Widget[] = [
     size: { width: 280, height: 180 },
     isVisible: true,
     isLocked: false,
-    // Step 7-5: เปลี่ยนจาก "Clock" เป็น JSON format
     label: JSON.stringify({ name: "Clock", use24h: true, locale: "th-TH" }),
     todoItems: [],
     notes: [],
@@ -28,9 +27,9 @@ export const DEFAULT_WIDGETS: Widget[] = [
     isLocked: false,
     label: "My Tasks",
     todoItems: [
-      { id: "t-1", text: "Setup DeskLoom project", completed: true,  createdAt: Date.now() },
-      { id: "t-2", text: "Implement Phase 1",      completed: false, createdAt: Date.now() },
-      { id: "t-3", text: "Test drag and drop",     completed: false, createdAt: Date.now() },
+      { id: "t-1", text: "Setup DeskLoom project", completed: true,  createdAt: 1700000000000 },
+      { id: "t-2", text: "Implement Phase 1",      completed: false, createdAt: 1700000000000 },
+      { id: "t-3", text: "Test drag and drop",     completed: false, createdAt: 1700000000000 },
     ],
     notes: [],
     opacity: 1,
@@ -45,8 +44,8 @@ export const DEFAULT_WIDGETS: Widget[] = [
     label: "My Notes",
     todoItems: [],
     notes: [
-      { id: "n-1", title: "Phase 1 Goals", content: "Store, Canvas, Drag, Clock, Todo, Notes", createdAt: Date.now(), updatedAt: Date.now() },
-      { id: "n-2", title: "Phase 2 Plan",  content: "Tauri filesystem API for persistence",    createdAt: Date.now(), updatedAt: Date.now() },
+      { id: "n-1", title: "Phase 1 Goals", content: "Store, Canvas, Drag, Clock, Todo, Notes", createdAt: 1700000000000, updatedAt: 1700000000000 },
+      { id: "n-2", title: "Phase 2 Plan",  content: "Tauri filesystem API for persistence",    createdAt: 1700000000000, updatedAt: 1700000000000 },
     ],
     opacity: 1,
   },

@@ -1,6 +1,6 @@
 {
   "productName": "DeskLoom",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "identifier": "com.deskloom.app",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -23,7 +23,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'"
     }
   },
   "bundle": {

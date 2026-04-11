@@ -18,6 +18,12 @@ const MIGRATION_MIN_WIDTH   = 150;
 const MIGRATION_MIN_HEIGHT  = 100;
 const MIGRATION_MIN_OPACITY = 0.2;
 
+const RETRY_DELAY_MS = 300;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function migrateTodoItem(raw: Record<string, unknown>): TodoItem {
   return {
     id:        typeof raw.id === "string"        ? raw.id        : crypto.randomUUID(),
@@ -54,9 +60,7 @@ function sanitizeSize(
   };
 }
 
-// Step 7-5: migrate clock label จาก legacy "||" format เป็น JSON format
 function migrateClockLabel(label: string): string {
-  // ถ้าเป็น JSON format แล้ว → return ทันที
   try {
     const parsed = JSON.parse(label) as Record<string, unknown>;
     if (typeof parsed.name === "string") return label;
@@ -64,7 +68,6 @@ function migrateClockLabel(label: string): string {
     // ไม่ใช่ JSON
   }
 
-  // Legacy "||" format → แปลงเป็น JSON
   const parts = label.split("||");
   if (parts.length === 3) {
     return JSON.stringify({
@@ -74,7 +77,6 @@ function migrateClockLabel(label: string): string {
     });
   }
 
-  // Unknown format → ใช้ label เป็นชื่อ, ค่า default อื่น
   return JSON.stringify({ name: label, use24h: true, locale: "th-TH" });
 }
 
@@ -97,13 +99,11 @@ function migrateWidget(raw: Record<string, unknown>): Widget {
       ? Math.min(1, Math.max(MIGRATION_MIN_OPACITY, raw.opacity))
       : 1;
 
-  // Step 7-5: resolve type ก่อน เพื่อใช้ใน label migration
   const rawType = (raw.type === "clock" || raw.type === "todo" || raw.type === "notes")
     ? raw.type : "clock";
 
-  const rawLabel   = typeof raw.label === "string" ? raw.label : "Widget";
-  // Step 7-5: migrate clock label เป็น JSON format อัตโนมัติ
-  const safeLabel  = rawType === "clock" ? migrateClockLabel(rawLabel) : rawLabel;
+  const rawLabel  = typeof raw.label === "string" ? raw.label : "Widget";
+  const safeLabel = rawType === "clock" ? migrateClockLabel(rawLabel) : rawLabel;
 
   return {
     id:        typeof raw.id === "string" ? raw.id : crypto.randomUUID(),
@@ -123,7 +123,6 @@ function migrateWidget(raw: Record<string, unknown>): Widget {
   };
 }
 
-// Step 7-3: null = first run, throws = file corrupt
 export async function loadState(): Promise<AppState | null> {
   const fileExists = await exists(STATE_FILE, {
     baseDir: BaseDirectory.AppData,
@@ -164,8 +163,7 @@ export async function loadState(): Promise<AppState | null> {
   return { version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop };
 }
 
-// Step 7-1: atomic write
-export async function saveState(state: AppState): Promise<void> {
+async function attemptSave(state: AppState): Promise<void> {
   await mkdir(APP_DIR, {
     baseDir: BaseDirectory.AppData,
     recursive: true,
@@ -176,4 +174,19 @@ export async function saveState(state: AppState): Promise<void> {
     oldPathBaseDir: BaseDirectory.AppData,
     newPathBaseDir: BaseDirectory.AppData,
   });
+}
+
+export async function saveState(state: AppState): Promise<void> {
+  try {
+    await attemptSave(state);
+  } catch (firstError) {
+    console.warn("[storage] saveState failed, retrying in 300ms...", firstError);
+    await delay(RETRY_DELAY_MS);
+    try {
+      await attemptSave(state);
+    } catch (secondError) {
+      console.error("[storage] saveState failed after retry:", secondError);
+      throw secondError;
+    }
+  }
 }

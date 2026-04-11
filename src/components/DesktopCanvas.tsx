@@ -4,11 +4,16 @@ import React, { useState, useCallback } from "react";
 import { Widget } from "../types/widget";
 import WidgetContainer from "./WidgetContainer";
 
-interface DesktopCanvasProps {
-  widgets: Widget[];
+export interface WidgetCallbacks {
   onPositionChange: (id: string, position: { x: number; y: number }) => void;
   onSizeChange: (id: string, size: { width: number; height: number }) => void;
-  onClockConfigChange: (widgetId: string, changes: { use24h?: boolean; locale?: string; newLabel?: string }) => void;
+  onClockConfigChange: (
+    widgetId: string,
+    changes: { use24h?: boolean; locale?: string; newLabel?: string }
+  ) => void;
+}
+
+export interface ContentCallbacks {
   onAddTodo: (widgetId: string, text: string) => void;
   onToggleTodo: (widgetId: string, todoId: string) => void;
   onDeleteTodo: (widgetId: string, todoId: string) => void;
@@ -18,12 +23,18 @@ interface DesktopCanvasProps {
   onDeleteNote: (widgetId: string, noteId: string) => void;
 }
 
+interface DesktopCanvasProps {
+  widgets: Widget[];
+  widgetCallbacks: WidgetCallbacks;
+  contentCallbacks: ContentCallbacks;
+}
+
 const GRID_SIZE = 10;
 
 const DesktopCanvas: React.FC<DesktopCanvasProps> = ({
-  widgets, onPositionChange, onSizeChange, onClockConfigChange,
-  onAddTodo, onToggleTodo, onDeleteTodo, onClearCompleted,
-  onAddNote, onUpdateNote, onDeleteNote,
+  widgets,
+  widgetCallbacks,
+  contentCallbacks,
 }) => {
   const [activeWidgetId, setActiveWidgetId] = useState<string | null>(null);
 
@@ -40,6 +51,7 @@ const DesktopCanvas: React.FC<DesktopCanvasProps> = ({
     >
       {visibleWidgets.map((widget) => {
         const zIndex = widget.id === activeWidgetId ? 100 : 10;
+
         return (
           <WidgetContainer
             key={widget.id}
@@ -47,16 +59,8 @@ const DesktopCanvas: React.FC<DesktopCanvasProps> = ({
             zIndex={zIndex}
             gridSize={GRID_SIZE}
             onActivate={handleActivate}
-            onPositionChange={onPositionChange}
-            onSizeChange={onSizeChange}
-            onClockConfigChange={onClockConfigChange}
-            onAddTodo={onAddTodo}
-            onToggleTodo={onToggleTodo}
-            onDeleteTodo={onDeleteTodo}
-            onClearCompleted={onClearCompleted}
-            onAddNote={onAddNote}
-            onUpdateNote={onUpdateNote}
-            onDeleteNote={onDeleteNote}
+            {...widgetCallbacks}
+            {...contentCallbacks}
           />
         );
       })}
