@@ -36,15 +36,15 @@
 
 ## 📸 Screenshots
 
-| Dark Mode | Light Mode |
+| Widget Close-up | With Settings Panel |
 |-----------|------------|
 | ![Dark](docs/screenshot-dark.png) | ![Light](docs/screenshot-light.png) |
 
 <div align="center">
 
-**Settings Panel**
+**Full View**
 
-![Settings](docs/screenshot-settings.png)
+![Main](docs/screenshot-main.png)
 
 </div>
 
