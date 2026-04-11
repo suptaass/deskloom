@@ -1,0 +1,141 @@
+/* src/styles.css */
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+}
+
+body {
+  font-size: var(--font-size-base, 14px);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ─── CSS CUSTOM PROPERTIES ─────────────────────────────────────────────────── */
+
+:root,
+[data-theme="dark"] {
+  --widget-bg:           rgba(15, 15, 30, 0.75);
+  --widget-border:       rgba(255, 255, 255, 0.1);
+  --text-primary:        rgba(255, 255, 255, 0.9);
+  --text-secondary:      rgba(255, 255, 255, 0.5);
+  --text-dim:            rgba(255, 255, 255, 0.3);
+  --input-bg:            rgba(255, 255, 255, 0.07);
+  --input-border:        rgba(255, 255, 255, 0.15);
+  --divider:             rgba(255, 255, 255, 0.08);
+  --btn-bg:              rgba(255, 255, 255, 0.07);
+  --btn-border:          rgba(255, 255, 255, 0.15);
+  --btn-text:            rgba(255, 255, 255, 0.7);
+  --checkbox-border:     rgba(255, 255, 255, 0.3);
+  --progress-bg:         rgba(255, 255, 255, 0.1);
+  --item-border:         rgba(255, 255, 255, 0.06);
+  --note-border:         rgba(255, 255, 255, 0.08);
+  --scrollbar-thumb:     rgba(255, 255, 255, 0.2);
+  --accent-green:        rgba(100, 220, 150, 0.8);
+  --accent-green-bg:     rgba(100, 220, 150, 0.3);
+  --accent-green-text:   rgba(100, 220, 150, 1);
+  --accent-blue:         rgba(100, 180, 255, 0.9);
+  --accent-blue-border:  rgba(100, 180, 255, 0.3);
+  --accent-blue-bg:      rgba(100, 180, 255, 0.05);
+  --accent-red:          rgba(255, 100, 100, 0.7);
+  --accent-red-border:   rgba(255, 100, 100, 0.3);
+  --accent-color:        #6C8EF5;
+  --font-size-base:      14px;
+}
+
+[data-theme="light"] {
+  --widget-bg:           rgba(250, 250, 255, 0.92);
+  --widget-border:       rgba(0, 0, 0, 0.1);
+  --text-primary:        rgba(20, 20, 40, 0.9);
+  --text-secondary:      rgba(20, 20, 40, 0.5);
+  --text-dim:            rgba(20, 20, 40, 0.3);
+  --input-bg:            rgba(0, 0, 0, 0.05);
+  --input-border:        rgba(0, 0, 0, 0.15);
+  --divider:             rgba(0, 0, 0, 0.08);
+  --btn-bg:              rgba(0, 0, 0, 0.05);
+  --btn-border:          rgba(0, 0, 0, 0.12);
+  --btn-text:            rgba(20, 20, 40, 0.7);
+  --checkbox-border:     rgba(20, 20, 40, 0.3);
+  --progress-bg:         rgba(0, 0, 0, 0.1);
+  --item-border:         rgba(0, 0, 0, 0.06);
+  --note-border:         rgba(0, 0, 0, 0.08);
+  --scrollbar-thumb:     rgba(0, 0, 0, 0.2);
+  --accent-green:        rgba(30, 160, 80, 0.9);
+  --accent-green-bg:     rgba(30, 160, 80, 0.15);
+  --accent-green-text:   rgba(20, 140, 60, 1);
+  --accent-blue:         rgba(30, 100, 220, 0.9);
+  --accent-blue-border:  rgba(30, 100, 220, 0.3);
+  --accent-blue-bg:      rgba(30, 100, 220, 0.05);
+  --accent-red:          rgba(180, 40, 40, 0.8);
+  --accent-red-border:   rgba(180, 40, 40, 0.3);
+  --accent-color:        #6C8EF5;
+  --font-size-base:      14px;
+}
+
+/* ─── SCROLLBAR ─────────────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar       { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 2px; }
+
+/* ─── ACCENT COLOR TARGETS ────────────────────────────────────────────────── */
+
+[data-accent-bar] {
+  background: var(--accent-color) !important;
+}
+
+[data-checked="true"] {
+  border-color: var(--accent-color) !important;
+  background:   color-mix(in srgb, var(--accent-color) 30%, transparent) !important;
+  color:        var(--accent-color) !important;
+}
+
+input[type="range"] {
+  accent-color: var(--accent-color);
+}
+
+input:focus,
+textarea:focus {
+  border-color: var(--accent-color) !important;
+  outline: none;
+}
+
+/* ─── ANIMATIONS (Step 7-6) ──────────────────────────────────────────────────
+   widgetFadeIn  — ใช้กับ WidgetContainer ตอน mount
+   todoItemRemove — ใช้กับ todo item ก่อนลบจริง
+────────────────────────────────────────────────────────────────────────────── */
+
+@keyframes widgetFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes todoItemRemove {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+}
