@@ -2,9 +2,15 @@
 
 import React, { useRef, useCallback } from "react";
 import { Widget } from "../types/widget";
-import ClockWidget from "./widgets/ClockWidget";
-import TodoWidget from "./widgets/TodoWidget";
-import NotesWidget from "./widgets/NotesWidget";
+import type { WidgetCallbacks, ContentCallbacks } from "./DesktopCanvas";
+import ClockWidget        from "./widgets/ClockWidget";
+import TodoWidget         from "./widgets/TodoWidget";
+import NotesWidget        from "./widgets/NotesWidget";
+import QuickLinksWidget   from "./widgets/QuickLinksWidget";
+import CalendarWidget     from "./widgets/CalendarWidget";
+import WeatherWidget      from "./widgets/WeatherWidget";
+import PomodoroWidget     from "./widgets/PomodoroWidget";
+import HabitTrackerWidget from "./widgets/HabitTrackerWidget";
 
 const MIN_WIDTH  = 150;
 const MIN_HEIGHT = 100;
@@ -16,23 +22,8 @@ interface WidgetContainerProps {
   zIndex: number;
   gridSize: number;
   onActivate: (id: string) => void;
-  onPositionChange: (id: string, position: { x: number; y: number }) => void;
-  onSizeChange: (id: string, size: { width: number; height: number }) => void;
-  onClockConfigChange: (
-    widgetId: string,
-    changes: { use24h?: boolean; locale?: string; newLabel?: string }
-  ) => void;
-  onAddTodo: (widgetId: string, text: string) => void;
-  onToggleTodo: (widgetId: string, todoId: string) => void;
-  onDeleteTodo: (widgetId: string, todoId: string) => void;
-  onClearCompleted: (widgetId: string) => void;
-  onAddNote: (widgetId: string) => void;
-  onUpdateNote: (
-    widgetId: string,
-    noteId: string,
-    changes: { title?: string; content?: string }
-  ) => void;
-  onDeleteNote: (widgetId: string, noteId: string) => void;
+  widgetCallbacks: WidgetCallbacks;
+  contentCallbacks: ContentCallbacks;
 }
 
 function snapToGrid(value: number, grid: number): number {
@@ -49,13 +40,13 @@ function clampPosition(
 }
 
 const WidgetContainer: React.FC<WidgetContainerProps> = ({
-  widget, zIndex, gridSize, onActivate, onPositionChange, onSizeChange,
-  onClockConfigChange, onAddTodo, onToggleTodo, onDeleteTodo, onClearCompleted,
-  onAddNote, onUpdateNote, onDeleteNote,
+  widget, zIndex, gridSize, onActivate, widgetCallbacks, contentCallbacks,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging   = useRef<boolean>(false);
   const dragOffset   = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const { onPositionChange, onSizeChange } = widgetCallbacks;
 
   // ── Drag ──────────────────────────────────────────────────────────────────
   const handleMouseDown = useCallback(
@@ -80,20 +71,18 @@ const WidgetContainer: React.FC<WidgetContainerProps> = ({
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
         if (!isDragging.current || !containerRef.current) return;
-        const rawX = moveEvent.clientX - dragOffset.current.x;
-        const rawY = moveEvent.clientY - dragOffset.current.y;
+        const rawX    = moveEvent.clientX - dragOffset.current.x;
+        const rawY    = moveEvent.clientY - dragOffset.current.y;
         const clamped = clampPosition(rawX, rawY, widget.size.width, widget.size.height);
-        // อัปเดต DOM โดยตรง — ไม่ trigger React re-render
         containerRef.current.style.left = `${clamped.x}px`;
         containerRef.current.style.top  = `${clamped.y}px`;
       };
 
       const handleMouseUp = (upEvent: MouseEvent) => {
         isDragging.current = false;
-        const rawX = upEvent.clientX - dragOffset.current.x;
-        const rawY = upEvent.clientY - dragOffset.current.y;
+        const rawX    = upEvent.clientX - dragOffset.current.x;
+        const rawY    = upEvent.clientY - dragOffset.current.y;
         const clamped = clampPosition(rawX, rawY, widget.size.width, widget.size.height);
-        // commit ขึ้น parent ครั้งเดียวตอน mouseup
         onPositionChange(widget.id, {
           x: snapToGrid(clamped.x, gridSize),
           y: snapToGrid(clamped.y, gridSize),
@@ -140,17 +129,13 @@ const WidgetContainer: React.FC<WidgetContainerProps> = ({
         if (direction.includes("w")) {
           const pw = startWidth - dx;
           newWidth = Math.max(MIN_WIDTH, pw);
-          newLeft  = pw >= MIN_WIDTH
-            ? startLeft + dx
-            : startLeft + (startWidth - MIN_WIDTH);
+          newLeft  = pw >= MIN_WIDTH ? startLeft + dx : startLeft + (startWidth - MIN_WIDTH);
         }
         if (direction.includes("s")) newHeight = Math.max(MIN_HEIGHT, startHeight + dy);
         if (direction.includes("n")) {
           const ph = startHeight - dy;
           newHeight = Math.max(MIN_HEIGHT, ph);
-          newTop    = ph >= MIN_HEIGHT
-            ? startTop + dy
-            : startTop + (startHeight - MIN_HEIGHT);
+          newTop    = ph >= MIN_HEIGHT ? startTop + dy : startTop + (startHeight - MIN_HEIGHT);
         }
         return { newLeft, newTop, newWidth, newHeight };
       };
@@ -159,7 +144,6 @@ const WidgetContainer: React.FC<WidgetContainerProps> = ({
         if (!containerRef.current) return;
         const { newLeft, newTop, newWidth, newHeight } = compute(moveEvent);
         const clamped = clampPosition(newLeft, newTop, newWidth, newHeight);
-        // อัปเดต DOM โดยตรง — ไม่ trigger React re-render
         containerRef.current.style.left   = `${clamped.x}px`;
         containerRef.current.style.top    = `${clamped.y}px`;
         containerRef.current.style.width  = `${newWidth}px`;
@@ -169,7 +153,6 @@ const WidgetContainer: React.FC<WidgetContainerProps> = ({
       const handleMouseUp = (upEvent: MouseEvent) => {
         const { newLeft, newTop, newWidth, newHeight } = compute(upEvent);
         const clamped = clampPosition(newLeft, newTop, newWidth, newHeight);
-        // commit ขึ้น parent ครั้งเดียวตอน mouseup
         onPositionChange(widget.id, {
           x: snapToGrid(clamped.x, gridSize),
           y: snapToGrid(clamped.y, gridSize),
@@ -193,7 +176,15 @@ const WidgetContainer: React.FC<WidgetContainerProps> = ({
     ]
   );
 
+  // ── Render Content ─────────────────────────────────────────────────────────
   function renderContent() {
+    const { onClockConfigChange } = widgetCallbacks;
+    const {
+      onAddTodo, onToggleTodo, onDeleteTodo, onClearCompleted,
+      onAddNote, onUpdateNote, onDeleteNote,
+      onUpdateWidgetData,
+    } = contentCallbacks;
+
     switch (widget.type) {
       case "clock":
         return (
@@ -221,19 +212,46 @@ const WidgetContainer: React.FC<WidgetContainerProps> = ({
             onDelete={(id) => onDeleteNote(widget.id, id)}
           />
         );
+      case "quicklinks":
+        return (
+          <QuickLinksWidget
+            widget={widget}
+            onUpdateData={onUpdateWidgetData}
+          />
+        );
+      case "calendar":
+        return <CalendarWidget widget={widget} />;
+      case "weather":
+        return (
+          <WeatherWidget
+            widget={widget}
+            onUpdateData={onUpdateWidgetData}
+          />
+        );
+      case "pomodoro":
+        return (
+          <PomodoroWidget
+            widget={widget}
+            onUpdateData={onUpdateWidgetData}
+          />
+        );
+      case "habittracker":
+        return (
+          <HabitTrackerWidget
+            widget={widget}
+            onUpdateData={onUpdateWidgetData}
+          />
+        );
       default:
         return (
           <div style={{ color: "white", padding: "8px" }}>
-            Unknown: {widget.type}
+            Unknown widget type: {widget.type}
           </div>
         );
     }
   }
 
-  const resizeHandles: Array<{
-    direction: ResizeDirection;
-    style: React.CSSProperties;
-  }> = [
+  const resizeHandles: Array<{ direction: ResizeDirection; style: React.CSSProperties }> = [
     { direction: "nw", style: { top: 0,    left: 0,    width: 10, height: 10, cursor: "nwse-resize" } },
     { direction: "ne", style: { top: 0,    right: 0,   width: 10, height: 10, cursor: "nesw-resize" } },
     { direction: "sw", style: { bottom: 0, left: 0,    width: 10, height: 10, cursor: "nesw-resize" } },

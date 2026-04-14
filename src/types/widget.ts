@@ -1,5 +1,9 @@
 // src/types/widget.ts
 
+import type { WidgetType } from "../registry/widgetRegistry";
+
+export type { WidgetType };
+
 export interface TodoItem {
   id: string;
   text: string;
@@ -17,7 +21,7 @@ export interface Note {
 
 export interface Widget {
   id: string;
-  type: "clock" | "todo" | "notes";
+  type: WidgetType;
   position: { x: number; y: number };
   size: { width: number; height: number };
   isVisible: boolean;
@@ -26,10 +30,11 @@ export interface Widget {
   todoItems: TodoItem[];
   notes: Note[];
   opacity: number;
+  data: Record<string, unknown>;
 }
 
 export interface AppState {
-  version: number;                          // Phase 7 — schema version
+  version: number;
   widgets: Widget[];
   theme: "dark" | "light";
   accentColor: string;

@@ -21,12 +21,14 @@ export interface ContentCallbacks {
   onAddNote: (widgetId: string) => void;
   onUpdateNote: (widgetId: string, noteId: string, changes: { title?: string; content?: string }) => void;
   onDeleteNote: (widgetId: string, noteId: string) => void;
+  onUpdateWidgetData: (widgetId: string, data: Record<string, unknown>) => void;
 }
 
 interface DesktopCanvasProps {
   widgets: Widget[];
   widgetCallbacks: WidgetCallbacks;
   contentCallbacks: ContentCallbacks;
+  isFocusMode: boolean;
 }
 
 const GRID_SIZE = 10;
@@ -35,6 +37,7 @@ const DesktopCanvas: React.FC<DesktopCanvasProps> = ({
   widgets,
   widgetCallbacks,
   contentCallbacks,
+  isFocusMode,
 }) => {
   const [activeWidgetId, setActiveWidgetId] = useState<string | null>(null);
 
@@ -42,7 +45,10 @@ const DesktopCanvas: React.FC<DesktopCanvasProps> = ({
     setActiveWidgetId(id);
   }, []);
 
-  const visibleWidgets = widgets.filter((w) => w.isVisible);
+  // Focus Mode = ซ่อนทุก widget โดยไม่แตะ isVisible ของแต่ละตัว
+  const visibleWidgets = isFocusMode
+    ? []
+    : widgets.filter((w) => w.isVisible);
 
   return (
     <div
@@ -59,8 +65,8 @@ const DesktopCanvas: React.FC<DesktopCanvasProps> = ({
             zIndex={zIndex}
             gridSize={GRID_SIZE}
             onActivate={handleActivate}
-            {...widgetCallbacks}
-            {...contentCallbacks}
+            widgetCallbacks={widgetCallbacks}
+            contentCallbacks={contentCallbacks}
           />
         );
       })}

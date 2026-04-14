@@ -1,29 +1,47 @@
 {
   "productName": "DeskLoom",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "identifier": "com.deskloom.app",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build",
-    "frontendDist": "../dist"
+    "beforeBuildCommand": "pnpm build"
   },
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "DeskLoom",
-        "width": 1280,
-        "height": 800,
+        "width": 1200,
+        "height": 700,
+        "minWidth": 600,
+        "minHeight": 400,
+        "maxWidth": 1920,
+        "maxHeight": 1080,
         "resizable": true,
-        "fullscreen": false,
+        "maximizable": false,
         "decorations": false,
         "transparent": true,
-        "alwaysOnTop": false,
-        "skipTaskbar": false
+        "alwaysOnTop": false
+      },
+      {
+        "label": "quick-capture",
+        "title": "Quick Capture — DeskLoom",
+        "width": 440,
+        "height": 260,
+        "resizable": false,
+        "maximizable": false,
+        "minimizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "visible": false,
+        "center": true,
+        "skipTaskbar": true
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'"
+      "csp": null
     }
   },
   "bundle": {

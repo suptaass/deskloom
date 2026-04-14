@@ -139,3 +139,101 @@ textarea:focus {
     transform: translateX(-14px);
   }
 }
+
+/* ===== GEAR BUTTON ===== */
+.gear-button {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 9999;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(30, 30, 50, 0.7);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+  transition: background 0.2s, color 0.2s, transform 0.2s;
+}
+
+.gear-button:hover {
+  background: rgba(50, 50, 80, 0.9);
+  color: rgba(255, 255, 255, 0.95);
+  transform: rotate(30deg);
+}
+
+.gear-button:active {
+  transform: rotate(60deg) scale(0.92);
+}
+
+[data-theme="light"] .gear-button {
+  background: rgba(240, 240, 255, 0.75);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="light"] .gear-button:hover {
+  background: rgba(220, 220, 245, 0.95);
+  color: rgba(0, 0, 0, 0.85);
+}
+
+/* ===== FOCUS MODE BUTTON ===== */
+.focus-btn {
+  position: fixed;
+  top: 12px;
+  right: 56px; /* ห่างจาก gear-button (36px width + 8px gap + 12px margin) */
+  z-index: 9999;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(30, 30, 50, 0.7);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.focus-btn:hover {
+  background: rgba(50, 50, 80, 0.9);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Active state — Focus Mode กำลังเปิด */
+.focus-btn--active {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+  background: color-mix(in srgb, var(--accent-color) 15%, transparent);
+}
+
+.focus-btn--active:hover {
+  background: color-mix(in srgb, var(--accent-color) 25%, transparent);
+}
+
+[data-theme="light"] .focus-btn {
+  background: rgba(240, 240, 255, 0.75);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="light"] .focus-btn:hover {
+  background: rgba(220, 220, 245, 0.95);
+  color: rgba(0, 0, 0, 0.85);
+}
+
+[data-theme="light"] .focus-btn--active {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+  background: color-mix(in srgb, var(--accent-color) 12%, transparent);
+}

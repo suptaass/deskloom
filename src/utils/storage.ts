@@ -9,6 +9,7 @@ import {
 } from "@tauri-apps/plugin-fs";
 import { BaseDirectory } from "@tauri-apps/plugin-fs";
 import { AppState, Widget, TodoItem, Note } from "../types/widget";
+import { isValidWidgetType, WidgetType } from "../registry/widgetRegistry";
 
 const APP_DIR    = "com.deskloom.app";
 const STATE_FILE = `${APP_DIR}/state.json`;
@@ -65,7 +66,7 @@ function migrateClockLabel(label: string): string {
     const parsed = JSON.parse(label) as Record<string, unknown>;
     if (typeof parsed.name === "string") return label;
   } catch {
-    // ไม่ใช่ JSON
+    // not JSON
   }
 
   const parts = label.split("||");
@@ -78,6 +79,50 @@ function migrateClockLabel(label: string): string {
   }
 
   return JSON.stringify({ name: label, use24h: true, locale: "th-TH" });
+}
+
+// ── Migration v8: ตรวจ + ซ่อม data field ตาม widget type ──────────────────
+// ทำไมต้องมี function นี้:
+//   rawData อาจมาจาก state.json เก่าที่ขาด field บางตัว
+//   เช่น habittracker ที่ save ตอน v7 จะไม่มี habits array เลย
+//   → ต้อง inject default ให้ก่อน ไม่งั้น widget crash ตอน getHabits()
+//
+// ทำไมแยกเป็น function ไม่เขียนใน migrateWidget:
+//   เมื่อเพิ่ม widget type ใหม่ใน Phase ถัดไป
+//   แก้แค่ที่นี่ที่เดียว ไม่ต้องไปแตะ migrateWidget อีก
+function migrateWidgetData(
+  type: WidgetType,
+  rawData: Record<string, unknown>
+): Record<string, unknown> {
+  switch (type) {
+    case "habittracker": {
+      // guard: ถ้าไม่มี habits หรือ habits ไม่ใช่ array → inject []
+      return {
+        ...rawData,
+        habits: Array.isArray(rawData.habits) ? rawData.habits : [],
+      };
+    }
+    case "quicklinks": {
+      // guard: ถ้าไม่มี links หรือ links ไม่ใช่ array → inject []
+      return {
+        ...rawData,
+        links: Array.isArray(rawData.links) ? rawData.links : [],
+      };
+    }
+    case "pomodoro": {
+      // guard: ถ้าขาด workMinutes / breakMinutes → inject default
+      return {
+        ...rawData,
+        workMinutes:
+          typeof rawData.workMinutes === "number" ? rawData.workMinutes : 25,
+        breakMinutes:
+          typeof rawData.breakMinutes === "number" ? rawData.breakMinutes : 5,
+      };
+    }
+    // clock, todo, notes, calendar, weather — data เป็น {} ปกติ ไม่มี required field
+    default:
+      return rawData;
+  }
 }
 
 function migrateWidget(raw: Record<string, unknown>): Widget {
@@ -99,11 +144,22 @@ function migrateWidget(raw: Record<string, unknown>): Widget {
       ? Math.min(1, Math.max(MIGRATION_MIN_OPACITY, raw.opacity))
       : 1;
 
-  const rawType = (raw.type === "clock" || raw.type === "todo" || raw.type === "notes")
-    ? raw.type : "clock";
+  // migration guard: ถ้า type ไม่รู้จัก → fallback เป็น "clock"
+  const rawType: WidgetType = isValidWidgetType(raw.type) ? raw.type : "clock";
 
   const rawLabel  = typeof raw.label === "string" ? raw.label : "Widget";
   const safeLabel = rawType === "clock" ? migrateClockLabel(rawLabel) : rawLabel;
+
+  // migration guard: ถ้าไม่มี data field → ใส่ empty object ก่อน
+  const baseData: Record<string, unknown> =
+    raw.data !== null &&
+    typeof raw.data === "object" &&
+    !Array.isArray(raw.data)
+      ? (raw.data as Record<string, unknown>)
+      : {};
+
+  // migration v8: ซ่อม data ตาม type — เพิ่ม field ที่ขาดหายให้ครบ
+  const safeData = migrateWidgetData(rawType, baseData);
 
   return {
     id:        typeof raw.id === "string" ? raw.id : crypto.randomUUID(),
@@ -120,6 +176,7 @@ function migrateWidget(raw: Record<string, unknown>): Widget {
       migrateNote(note as Record<string, unknown>)
     ),
     opacity: rawOpacity,
+    data:    safeData,
   };
 }
 

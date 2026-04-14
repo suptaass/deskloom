@@ -17,6 +17,7 @@ export const DEFAULT_WIDGETS: Widget[] = [
     todoItems: [],
     notes: [],
     opacity: 1,
+    data: {},
   },
   {
     id: "todo-1",
@@ -33,6 +34,7 @@ export const DEFAULT_WIDGETS: Widget[] = [
     ],
     notes: [],
     opacity: 1,
+    data: {},
   },
   {
     id: "notes-1",
@@ -48,10 +50,12 @@ export const DEFAULT_WIDGETS: Widget[] = [
       { id: "n-2", title: "Phase 2 Plan",  content: "Tauri filesystem API for persistence",    createdAt: 1700000000000, updatedAt: 1700000000000 },
     ],
     opacity: 1,
+    data: {},
   },
 ];
 
 interface AppStore extends AppState {
+  isFocusMode: boolean;
   setWidgets:            (widgets: Widget[]) => void;
   addWidget:             (widget: Widget) => void;
   updateWidget:          (id: string, changes: Partial<Widget>) => void;
@@ -65,16 +69,19 @@ interface AppStore extends AppState {
   setAlwaysOnTop:        (value: boolean) => void;
   setAutostart:          (value: boolean) => void;
   resetLayout:           () => void;
+  toggleFocusMode:       () => void;
 }
 
 export const useAppStore = create<AppStore>((set) => ({
-  version:     7,
+  // ── bump version 7 → 8 (Phase 8 / HabitTracker migration) ─────────────────
+  version:     8,
   widgets:     DEFAULT_WIDGETS,
   theme:       "dark",
   accentColor: "#6C8EF5",
   fontSize:    "medium",
   autostart:   false,
   alwaysOnTop: false,
+  isFocusMode: false,
 
   setWidgets: (widgets) => set({ widgets }),
 
@@ -109,9 +116,9 @@ export const useAppStore = create<AppStore>((set) => ({
       ),
     })),
 
-  setTheme:      (theme) => set({ theme }),
-  setAccentColor:(accentColor) => set({ accentColor }),
-  setFontSize:   (fontSize) => set({ fontSize }),
+  setTheme:       (theme)       => set({ theme }),
+  setAccentColor: (accentColor) => set({ accentColor }),
+  setFontSize:    (fontSize)    => set({ fontSize }),
 
   setOpacity: (id, opacity) =>
     set((state) => ({
@@ -131,6 +138,9 @@ export const useAppStore = create<AppStore>((set) => ({
         return { ...w, position: def.position, size: def.size };
       }),
     })),
+
+  toggleFocusMode: () =>
+    set((state) => ({ isFocusMode: !state.isFocusMode })),
 }));
 
 export { DEFAULT_WIDGET_IDS };

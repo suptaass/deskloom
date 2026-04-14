@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { listen } from "@tauri-apps/api/event";
 import {
   enable as autostartEnable,
   disable as autostartDisable,
@@ -11,9 +12,9 @@ import type { WidgetCallbacks, ContentCallbacks } from "./components/DesktopCanv
 import SettingsPanel from "./components/SettingsPanel";
 import Toast from "./components/Toast";
 import OnboardingOverlay from "./components/OnboardingOverlay";
-import { useAppStore, DEFAULT_WIDGETS, DEFAULT_WIDGET_IDS } from "./store/appStore";
+import { useAppStore, DEFAULT_WIDGET_IDS } from "./store/appStore";
 import { loadState, saveState } from "./utils/storage";
-import type { TodoItem, Note, Widget } from "./types/widget";
+import { getRegistryEntry, getAddableEntries, WidgetType } from "./registry/widgetRegistry";
 
 const FONT_SIZE_MAP: Record<"small" | "medium" | "large", string> = {
   small: "12px",
@@ -22,39 +23,51 @@ const FONT_SIZE_MAP: Record<"small" | "medium" | "large", string> = {
 };
 
 const App: React.FC = () => {
-  const widgets = useAppStore((state) => state.widgets);
-  const theme = useAppStore((state) => state.theme);
-  const accentColor = useAppStore((state) => state.accentColor);
-  const fontSize = useAppStore((state) => state.fontSize);
-  const autostart = useAppStore((state) => state.autostart);
-  const alwaysOnTop = useAppStore((state) => state.alwaysOnTop);
-  const version = useAppStore((state) => state.version);
-  const setWidgets = useAppStore((state) => state.setWidgets);
-  const setTheme = useAppStore((state) => state.setTheme);
-  const setAccentColor = useAppStore((state) => state.setAccentColor);
-  const setFontSize = useAppStore((state) => state.setFontSize);
-  const setOpacity = useAppStore((state) => state.setOpacity);
-  const setAlwaysOnTop = useAppStore((state) => state.setAlwaysOnTop);
-  const setAutostart = useAppStore((state) => state.setAutostart);
-  const updateWidget = useAppStore((state) => state.updateWidget);
-  const addWidget = useAppStore((state) => state.addWidget);
-  const removeWidget = useAppStore((state) => state.removeWidget);
+  const widgets              = useAppStore((state) => state.widgets);
+  const theme                = useAppStore((state) => state.theme);
+  const accentColor          = useAppStore((state) => state.accentColor);
+  const fontSize             = useAppStore((state) => state.fontSize);
+  const autostart            = useAppStore((state) => state.autostart);
+  const alwaysOnTop          = useAppStore((state) => state.alwaysOnTop);
+  const version              = useAppStore((state) => state.version);
+  const isFocusMode          = useAppStore((state) => state.isFocusMode);
+  const setWidgets           = useAppStore((state) => state.setWidgets);
+  const setTheme             = useAppStore((state) => state.setTheme);
+  const setAccentColor       = useAppStore((state) => state.setAccentColor);
+  const setFontSize          = useAppStore((state) => state.setFontSize);
+  const setOpacity           = useAppStore((state) => state.setOpacity);
+  const setAlwaysOnTop       = useAppStore((state) => state.setAlwaysOnTop);
+  const setAutostart         = useAppStore((state) => state.setAutostart);
+  const updateWidget         = useAppStore((state) => state.updateWidget);
+  const addWidget            = useAppStore((state) => state.addWidget);
+  const removeWidget         = useAppStore((state) => state.removeWidget);
   const updateWidgetPosition = useAppStore((state) => state.updateWidgetPosition);
-  const updateWidgetSize = useAppStore((state) => state.updateWidgetSize);
-  const resetLayout = useAppStore((state) => state.resetLayout);
+  const updateWidgetSize     = useAppStore((state) => state.updateWidgetSize);
+  const resetLayout          = useAppStore((state) => state.resetLayout);
+  const toggleFocusMode      = useAppStore((state) => state.toggleFocusMode);
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [toastMessage, setToastMessage] = useState<{ msg: string; id: number } | null>(null);
-  const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  // ── widgetsRef: ป้องกัน stale closure ใน quick-capture listener ────────────
+  // ทำไม: listen() ลงทะเบียน callback ครั้งเดียว ถ้าอ่าน widgets ตรงๆ
+  // จะได้ค่า snapshot ตอนลงทะเบียน ไม่ใช่ค่าล่าสุด
+  const widgetsRef = useRef(widgets);
+  useEffect(() => { widgetsRef.current = widgets; }, [widgets]);
+
+  // updateWidget ref — เหตุผลเดียวกัน
+  const updateWidgetRef = useRef(updateWidget);
+  useEffect(() => { updateWidgetRef.current = updateWidget; }, [updateWidget]);
+
+  const [toastMessage, setToastMessage]     = useState<{ msg: string; id: number } | null>(null);
+  const [isLoaded, setIsLoaded]             = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
-  const [, setIsFirstRun] = useState<boolean>(false);
+  const [, setIsFirstRun]                   = useState<boolean>(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
 
+  // ── Load on mount ──────────────────────────────────────────────────────────
   useEffect(() => {
     const init = async () => {
       let saved = null;
-
       try {
         saved = await loadState();
         if (saved === null) {
@@ -85,18 +98,15 @@ const App: React.FC = () => {
           }
         }
       }
-
       setIsLoaded(true);
     };
-
     init();
   }, [setWidgets, setTheme, setAccentColor, setFontSize, setAlwaysOnTop, setAutostart]);
 
+  // ── Auto-save ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isLoaded) return;
-
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-
     saveTimerRef.current = setTimeout(async () => {
       try {
         await saveState({ version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop });
@@ -105,27 +115,94 @@ const App: React.FC = () => {
         setToastMessage({ msg: "Failed to save data. Please check app permissions.", id: Date.now() });
       }
     }, 500);
-
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop, isLoaded]);
 
+  // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === ",") {
+      if (e.ctrlKey && e.code === "Comma") {
         e.preventDefault();
         setIsSettingsOpen((prev) => !prev);
       }
+      if (e.ctrlKey && e.code === "KeyF") {
+        e.preventDefault();
+        toggleFocusMode();
+      }
     };
-
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [toggleFocusMode]);
 
-  const handleToastDismiss = useCallback(() => setToastMessage(null), []);
+  // ── Quick Capture listener ─────────────────────────────────────────────────
+  // ลงทะเบียนครั้งเดียว ใช้ ref อ่านค่าล่าสุดเสมอ
+  useEffect(() => {
+    const unlistenPromise = listen<{ text: string; targetType: "todo" | "notes" }>(
+      "quick-capture-submit",
+      (event) => {
+        const { text, targetType } = event.payload;
+        const currentWidgets = widgetsRef.current;
 
+        // หา widget ตัวแรกที่ visible และ type ตรง
+        const target = currentWidgets.find(
+          (w) => w.type === targetType && w.isVisible
+        );
+
+        if (!target) {
+          setToastMessage({
+            msg: `No visible ${targetType} widget found.`,
+            id: Date.now(),
+          });
+          return;
+        }
+
+        if (targetType === "todo") {
+          updateWidgetRef.current(target.id, {
+            todoItems: [
+              ...target.todoItems,
+              {
+                id:        crypto.randomUUID(),
+                text:      text.trim(),
+                completed: false,
+                createdAt: Date.now(),
+              },
+            ],
+          });
+        } else {
+          // notes: สร้าง note ใหม่โดยใช้ text เป็นทั้ง title และ content
+          updateWidgetRef.current(target.id, {
+            notes: [
+              ...target.notes,
+              {
+                id:        crypto.randomUUID(),
+                title:     text.trim().slice(0, 50),
+                content:   text.trim(),
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+              },
+            ],
+          });
+        }
+
+        setToastMessage({
+          msg: `✓ Added to ${target.label}`,
+          id: Date.now(),
+        });
+      }
+    );
+
+    return () => {
+      unlistenPromise.then((fn) => fn());
+    };
+  }, []); // [] — ลงทะเบียนครั้งเดียว ใช้ ref แทน
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
+  const handleToastDismiss      = useCallback(() => setToastMessage(null), []);
   const handleDismissOnboarding = useCallback(() => setShowOnboarding(false), []);
+
+  const handleToggleSettings = useCallback(() => {
+    setIsSettingsOpen((prev) => !prev);
+  }, []);
 
   const handleToggleTheme = useCallback(() => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -153,15 +230,13 @@ const App: React.FC = () => {
     (widgetId: string, newLabel: string) => {
       const widget = widgets.find((w) => w.id === widgetId);
       if (!widget) return;
-
       const trimmed = newLabel.trim();
-
       if (widget.type === "clock") {
         try {
           const parsed = JSON.parse(widget.label) as Record<string, unknown>;
           updateWidget(widgetId, {
             label: JSON.stringify({
-              name: trimmed,
+              name:   trimmed,
               use24h: parsed.use24h !== false,
               locale: typeof parsed.locale === "string" ? parsed.locale : "th-TH",
             }),
@@ -181,10 +256,7 @@ const App: React.FC = () => {
   const handleResetLayout = useCallback(() => resetLayout(), [resetLayout]);
 
   const handleClockConfigChange = useCallback(
-    (
-      widgetId: string,
-      changes: { use24h?: boolean; locale?: string; newLabel?: string }
-    ) => {
+    (widgetId: string, changes: { use24h?: boolean; locale?: string; newLabel?: string }) => {
       if (!changes.newLabel) return;
       updateWidget(widgetId, { label: changes.newLabel });
     },
@@ -197,27 +269,27 @@ const App: React.FC = () => {
   );
 
   const handleAddWidgetInstance = useCallback(
-    (type: "todo" | "notes") => {
-      const count = widgets.filter((w) => w.type === type).length;
-      const label = type === "todo" ? `Tasks ${count + 1}` : `Notes ${count + 1}`;
+    (type: WidgetType) => {
+      const entry = getRegistryEntry(type);
+      if (entry.isProtected) return;
+      const count  = widgets.filter((w) => w.type === type).length;
       const offset = count * 30;
-      const baseWidget = DEFAULT_WIDGETS.find((w) => w.type === type);
-      if (!baseWidget) return;
-
-      const newWidget: Widget = {
-        ...baseWidget,
-        id: `${type}-${Date.now()}`,
-        label,
-        todoItems: [],
-        notes: [],
+      addWidget({
+        id:        `${type}-${Date.now()}`,
+        type,
+        label:     entry.makeDefaultLabel(count + 1),
         position: {
-          x: baseWidget.position.x + offset,
-          y: baseWidget.position.y + offset,
+          x: entry.defaultPosition.x + offset,
+          y: entry.defaultPosition.y + offset,
         },
-        opacity: 1,
-      };
-
-      addWidget(newWidget);
+        size:      { ...entry.defaultSize },
+        isVisible: true,
+        isLocked:  false,
+        todoItems: [],
+        notes:     [],
+        opacity:   1,
+        data:      { ...entry.defaultData },
+      });
     },
     [widgets, addWidget]
   );
@@ -246,11 +318,8 @@ const App: React.FC = () => {
   const handleSetAutostart = useCallback(
     async (value: boolean) => {
       try {
-        if (value) {
-          await autostartEnable();
-        } else {
-          await autostartDisable();
-        }
+        if (value) { await autostartEnable(); }
+        else       { await autostartDisable(); }
         setAutostart(value);
       } catch (e) {
         console.error("[App] autostart failed:", e);
@@ -260,19 +329,17 @@ const App: React.FC = () => {
     [setAutostart]
   );
 
+  // ── Todo handlers ──────────────────────────────────────────────────────────
   const handleAddTodo = useCallback(
     (widgetId: string, text: string) => {
       const widget = widgets.find((w) => w.id === widgetId);
       if (!widget) return;
-
-      const newItem: TodoItem = {
-        id: crypto.randomUUID(),
-        text: text.trim(),
-        completed: false,
-        createdAt: Date.now(),
-      };
-
-      updateWidget(widgetId, { todoItems: [...widget.todoItems, newItem] });
+      updateWidget(widgetId, {
+        todoItems: [...widget.todoItems, {
+          id: crypto.randomUUID(), text: text.trim(),
+          completed: false, createdAt: Date.now(),
+        }],
+      });
     },
     [widgets, updateWidget]
   );
@@ -281,12 +348,11 @@ const App: React.FC = () => {
     (widgetId: string, todoId: string) => {
       const widget = widgets.find((w) => w.id === widgetId);
       if (!widget) return;
-
-      const updated = widget.todoItems.map((item) =>
-        item.id === todoId ? { ...item, completed: !item.completed } : item
-      );
-
-      updateWidget(widgetId, { todoItems: updated });
+      updateWidget(widgetId, {
+        todoItems: widget.todoItems.map((item) =>
+          item.id === todoId ? { ...item, completed: !item.completed } : item
+        ),
+      });
     },
     [widgets, updateWidget]
   );
@@ -295,7 +361,6 @@ const App: React.FC = () => {
     (widgetId: string, todoId: string) => {
       const widget = widgets.find((w) => w.id === widgetId);
       if (!widget) return;
-
       updateWidget(widgetId, {
         todoItems: widget.todoItems.filter((item) => item.id !== todoId),
       });
@@ -307,7 +372,6 @@ const App: React.FC = () => {
     (widgetId: string) => {
       const widget = widgets.find((w) => w.id === widgetId);
       if (!widget) return;
-
       updateWidget(widgetId, {
         todoItems: widget.todoItems.filter((item) => !item.completed),
       });
@@ -315,38 +379,30 @@ const App: React.FC = () => {
     [widgets, updateWidget]
   );
 
+  // ── Note handlers ──────────────────────────────────────────────────────────
   const handleAddNote = useCallback(
     (widgetId: string) => {
       const widget = widgets.find((w) => w.id === widgetId);
       if (!widget) return;
-
-      const newNote: Note = {
-        id: crypto.randomUUID(),
-        title: "Untitled",
-        content: "",
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
-
-      updateWidget(widgetId, { notes: [...widget.notes, newNote] });
+      updateWidget(widgetId, {
+        notes: [...widget.notes, {
+          id: crypto.randomUUID(), title: "Untitled",
+          content: "", createdAt: Date.now(), updatedAt: Date.now(),
+        }],
+      });
     },
     [widgets, updateWidget]
   );
 
   const handleUpdateNote = useCallback(
-    (
-      widgetId: string,
-      noteId: string,
-      changes: { title?: string; content?: string }
-    ) => {
+    (widgetId: string, noteId: string, changes: { title?: string; content?: string }) => {
       const widget = widgets.find((w) => w.id === widgetId);
       if (!widget) return;
-
-      const updated = widget.notes.map((note) =>
-        note.id === noteId ? { ...note, ...changes, updatedAt: Date.now() } : note
-      );
-
-      updateWidget(widgetId, { notes: updated });
+      updateWidget(widgetId, {
+        notes: widget.notes.map((note) =>
+          note.id === noteId ? { ...note, ...changes, updatedAt: Date.now() } : note
+        ),
+      });
     },
     [widgets, updateWidget]
   );
@@ -355,7 +411,6 @@ const App: React.FC = () => {
     (widgetId: string, noteId: string) => {
       const widget = widgets.find((w) => w.id === widgetId);
       if (!widget) return;
-
       updateWidget(widgetId, {
         notes: widget.notes.filter((note) => note.id !== noteId),
       });
@@ -363,10 +418,18 @@ const App: React.FC = () => {
     [widgets, updateWidget]
   );
 
+  const handleUpdateWidgetData = useCallback(
+    (widgetId: string, data: Record<string, unknown>) => {
+      updateWidget(widgetId, { data });
+    },
+    [updateWidget]
+  );
+
+  // ── Memoized callback objects ──────────────────────────────────────────────
   const widgetCallbacks = useMemo<WidgetCallbacks>(
     () => ({
-      onPositionChange: updateWidgetPosition,
-      onSizeChange: updateWidgetSize,
+      onPositionChange:    updateWidgetPosition,
+      onSizeChange:        updateWidgetSize,
       onClockConfigChange: handleClockConfigChange,
     }),
     [updateWidgetPosition, updateWidgetSize, handleClockConfigChange]
@@ -374,41 +437,62 @@ const App: React.FC = () => {
 
   const contentCallbacks = useMemo<ContentCallbacks>(
     () => ({
-      onAddTodo: handleAddTodo,
-      onToggleTodo: handleToggleTodo,
-      onDeleteTodo: handleDeleteTodo,
-      onClearCompleted: handleClearCompleted,
-      onAddNote: handleAddNote,
-      onUpdateNote: handleUpdateNote,
-      onDeleteNote: handleDeleteNote,
+      onAddTodo:          handleAddTodo,
+      onToggleTodo:       handleToggleTodo,
+      onDeleteTodo:       handleDeleteTodo,
+      onClearCompleted:   handleClearCompleted,
+      onAddNote:          handleAddNote,
+      onUpdateNote:       handleUpdateNote,
+      onDeleteNote:       handleDeleteNote,
+      onUpdateWidgetData: handleUpdateWidgetData,
     }),
     [
-      handleAddTodo,
-      handleToggleTodo,
-      handleDeleteTodo,
-      handleClearCompleted,
-      handleAddNote,
-      handleUpdateNote,
-      handleDeleteNote,
+      handleAddTodo, handleToggleTodo, handleDeleteTodo, handleClearCompleted,
+      handleAddNote, handleUpdateNote, handleDeleteNote, handleUpdateWidgetData,
     ]
   );
 
+  const addableEntries = useMemo(() => getAddableEntries(), []);
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div
       data-theme={theme}
       style={{
-        width: "100vw",
-        height: "100vh",
+        width: "100vw", height: "100vh",
         background: "transparent",
         fontSize: FONT_SIZE_MAP[fontSize],
-        "--accent-color": accentColor,
+        "--accent-color":   accentColor,
         "--font-size-base": FONT_SIZE_MAP[fontSize],
       } as React.CSSProperties}
     >
+      {!isSettingsOpen && (
+        <button
+          className="gear-button"
+          onClick={handleToggleSettings}
+          title="Settings (Ctrl+,)"
+          aria-label="Open Settings"
+        >
+          ⚙
+        </button>
+      )}
+
+      {!isSettingsOpen && (
+        <button
+          className={`focus-btn${isFocusMode ? " focus-btn--active" : ""}`}
+          onClick={toggleFocusMode}
+          title={isFocusMode ? "Exit Focus Mode (Ctrl+F)" : "Focus Mode (Ctrl+F)"}
+          aria-label={isFocusMode ? "Exit Focus Mode" : "Enter Focus Mode"}
+        >
+          {isFocusMode ? "◎" : "○"}
+        </button>
+      )}
+
       <DesktopCanvas
         widgets={widgets}
         widgetCallbacks={widgetCallbacks}
         contentCallbacks={contentCallbacks}
+        isFocusMode={isFocusMode}
       />
       <SettingsPanel
         isOpen={isSettingsOpen}
@@ -418,6 +502,7 @@ const App: React.FC = () => {
         fontSize={fontSize}
         autostart={autostart}
         alwaysOnTop={alwaysOnTop}
+        addableEntries={addableEntries}
         onClose={() => setIsSettingsOpen(false)}
         onToggleTheme={handleToggleTheme}
         onToggleVisible={handleToggleVisible}
