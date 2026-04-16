@@ -13,6 +13,7 @@ use tauri_plugin_global_shortcut::{
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
@@ -20,9 +21,6 @@ pub fn run() {
             Some(vec![]),
         ))
         .setup(|app| {
-            // ── Global Shortcut: Ctrl+Shift+Space → toggle Quick Capture ───
-            // ทำไม center() ก่อน show(): ถ้า show() ก่อน window อาจปรากฏ
-            // ที่ตำแหน่งเก่าก่อน จึงต้อง center ก่อนเสมอ
             let shortcut = Shortcut::new(
                 Some(Modifiers::CONTROL | Modifiers::SHIFT),
                 Code::Space,
@@ -47,14 +45,12 @@ pub fn run() {
                 },
             )?;
 
-            // ── สร้าง Context Menu ─────────────────────────────────────────
             let show_item =
                 MenuItem::with_id(app, "show", "Show DeskLoom", true, None::<&str>)?;
             let quit_item =
                 MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
 
-            // ── สร้าง Tray Icon ────────────────────────────────────────────
             let _tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .tooltip("DeskLoom")
@@ -66,9 +62,7 @@ pub fn run() {
                             let _ = window.set_focus();
                         }
                     }
-                    "quit" => {
-                        app.exit(0);
-                    }
+                    "quit" => { app.exit(0); }
                     _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
@@ -93,7 +87,6 @@ pub fn run() {
 
             Ok(())
         })
-        // ── กด X → ซ่อนลง Tray แทนปิด (ใช้กับทุก window) ────────────────
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();

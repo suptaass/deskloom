@@ -18,6 +18,8 @@ export const DEFAULT_WIDGETS: Widget[] = [
     notes: [],
     opacity: 1,
     data: {},
+    condition: null,
+    stack: { stackId: null, stackOrder: 0 },
   },
   {
     id: "todo-1",
@@ -35,6 +37,8 @@ export const DEFAULT_WIDGETS: Widget[] = [
     notes: [],
     opacity: 1,
     data: {},
+    condition: null,
+    stack: { stackId: null, stackOrder: 0 },
   },
   {
     id: "notes-1",
@@ -51,11 +55,13 @@ export const DEFAULT_WIDGETS: Widget[] = [
     ],
     opacity: 1,
     data: {},
+    condition: null,
+    stack: { stackId: null, stackOrder: 0 },
   },
 ];
 
 interface AppStore extends AppState {
-  isFocusMode: boolean;
+  isFocusMode:           boolean;
   setWidgets:            (widgets: Widget[]) => void;
   addWidget:             (widget: Widget) => void;
   updateWidget:          (id: string, changes: Partial<Widget>) => void;
@@ -73,7 +79,6 @@ interface AppStore extends AppState {
 }
 
 export const useAppStore = create<AppStore>((set) => ({
-  // ── bump version 7 → 8 (Phase 8 / HabitTracker migration) ─────────────────
   version:     8,
   widgets:     DEFAULT_WIDGETS,
   theme:       "dark",
@@ -90,30 +95,22 @@ export const useAppStore = create<AppStore>((set) => ({
 
   updateWidget: (id, changes) =>
     set((state) => ({
-      widgets: state.widgets.map((w) =>
-        w.id === id ? { ...w, ...changes } : w
-      ),
+      widgets: state.widgets.map((w) => w.id === id ? { ...w, ...changes } : w),
     })),
 
   removeWidget: (id) => {
     if (DEFAULT_WIDGET_IDS.includes(id)) return;
-    set((state) => ({
-      widgets: state.widgets.filter((w) => w.id !== id),
-    }));
+    set((state) => ({ widgets: state.widgets.filter((w) => w.id !== id) }));
   },
 
   updateWidgetPosition: (id, position) =>
     set((state) => ({
-      widgets: state.widgets.map((w) =>
-        w.id === id ? { ...w, position } : w
-      ),
+      widgets: state.widgets.map((w) => w.id === id ? { ...w, position } : w),
     })),
 
   updateWidgetSize: (id, size) =>
     set((state) => ({
-      widgets: state.widgets.map((w) =>
-        w.id === id ? { ...w, size } : w
-      ),
+      widgets: state.widgets.map((w) => w.id === id ? { ...w, size } : w),
     })),
 
   setTheme:       (theme)       => set({ theme }),

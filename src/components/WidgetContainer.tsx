@@ -19,9 +19,11 @@ type ResizeDirection = "n" | "s" | "e" | "w" | "nw" | "ne" | "sw" | "se";
 
 interface WidgetContainerProps {
   widget: Widget;
+  stackWidgets?: Widget[];
   zIndex: number;
   gridSize: number;
   onActivate: (id: string) => void;
+  onSelectStackTab?: (widgetId: string) => void;
   widgetCallbacks: WidgetCallbacks;
   contentCallbacks: ContentCallbacks;
 }
@@ -40,13 +42,21 @@ function clampPosition(
 }
 
 const WidgetContainer: React.FC<WidgetContainerProps> = ({
-  widget, zIndex, gridSize, onActivate, widgetCallbacks, contentCallbacks,
+  widget,
+  stackWidgets = [],
+  zIndex,
+  gridSize,
+  onActivate,
+  onSelectStackTab,
+  widgetCallbacks,
+  contentCallbacks,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging   = useRef<boolean>(false);
   const dragOffset   = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const { onPositionChange, onSizeChange } = widgetCallbacks;
+  const isStacked = stackWidgets.length > 1;
 
   // ── Drag ──────────────────────────────────────────────────────────────────
   const handleMouseDown = useCallback(
@@ -279,8 +289,66 @@ const WidgetContainer: React.FC<WidgetContainerProps> = ({
         animation:  "widgetFadeIn 0.35s ease",
       }}
     >
-      <div style={{ position: "absolute", inset: 0, overflow: "hidden", borderRadius: "14px" }}>
-        {renderContent()}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          overflow: "hidden",
+          borderRadius: "14px",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {isStacked && (
+          <div
+            style={{
+              display: "flex",
+              gap: "6px",
+              padding: "8px 10px 0",
+              position: "relative",
+              zIndex: 2,
+            }}
+          >
+            {stackWidgets.map((stackWidget) => {
+              const isActiveTab = stackWidget.id === widget.id;
+
+              return (
+                <button
+                  key={stackWidget.id}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    onActivate(stackWidget.id);
+                  }}
+                  onClick={() => onSelectStackTab?.(stackWidget.id)}
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: "999px",
+                    border: `1px solid ${isActiveTab ? "var(--accent-color)" : "var(--btn-border)"}`,
+                    background: isActiveTab
+                      ? "color-mix(in srgb, var(--accent-color) 18%, transparent)"
+                      : "var(--btn-bg)",
+                    color: isActiveTab ? "var(--accent-color)" : "var(--text-secondary)",
+                    fontSize: "11px",
+                    fontWeight: isActiveTab ? "700" : "500",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    maxWidth: "100%",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                  title={stackWidget.label}
+                >
+                  {stackWidget.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
+          {renderContent()}
+        </div>
       </div>
       {!widget.isLocked &&
         resizeHandles.map(({ direction, style }) => (

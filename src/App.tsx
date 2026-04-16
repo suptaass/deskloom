@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
+import { save as dialogSave, open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import {
   enable as autostartEnable,
   disable as autostartDisable,
@@ -13,14 +14,51 @@ import SettingsPanel from "./components/SettingsPanel";
 import Toast from "./components/Toast";
 import OnboardingOverlay from "./components/OnboardingOverlay";
 import { useAppStore, DEFAULT_WIDGET_IDS } from "./store/appStore";
-import { loadState, saveState } from "./utils/storage";
+import { loadState, saveState, writeLayoutFile, readLayoutFile } from "./utils/storage";
+import { checkCondition } from "./utils/condition";
 import { getRegistryEntry, getAddableEntries, WidgetType } from "./registry/widgetRegistry";
+import { Widget, WidgetCondition } from "./types/widget";
 
 const FONT_SIZE_MAP: Record<"small" | "medium" | "large", string> = {
   small: "12px",
   medium: "14px",
   large: "16px",
 };
+
+function normalizeStackOrders(stackWidgets: Widget[]): Widget[] {
+  return [...stackWidgets]
+    .sort((a, b) => a.stack.stackOrder - b.stack.stackOrder)
+    .map((widget, index) => ({
+      ...widget,
+      stack: { ...widget.stack, stackOrder: index },
+    }));
+}
+
+function parseShortcutKey(e: KeyboardEvent): string | null {
+  if (!e.ctrlKey && !e.altKey && !e.shiftKey) return null;
+  if (["Control", "Alt", "Shift", "Meta"].includes(e.key)) return null;
+  const parts: string[] = [];
+  if (e.ctrlKey)  parts.push("Ctrl");
+  if (e.altKey)   parts.push("Alt");
+  if (e.shiftKey) parts.push("Shift");
+  parts.push(e.key.toUpperCase());
+  return parts.join("+");
+}
+
+// ── getDisplayLabel ────────────────────────────────────────────────────────
+// ทำไม: Clock widget เก็บ label เป็น JSON → ต้อง parse ก่อนแสดงผล
+// ใช้ใน toast message ของ widget shortcut
+function getDisplayLabel(widget: Widget): string {
+  if (widget.type === "clock") {
+    try {
+      const parsed = JSON.parse(widget.label) as { name?: string };
+      return parsed.name ?? widget.label;
+    } catch {
+      return widget.label;
+    }
+  }
+  return widget.label;
+}
 
 const App: React.FC = () => {
   const widgets              = useAppStore((state) => state.widgets);
@@ -48,13 +86,8 @@ const App: React.FC = () => {
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── widgetsRef: ป้องกัน stale closure ใน quick-capture listener ────────────
-  // ทำไม: listen() ลงทะเบียน callback ครั้งเดียว ถ้าอ่าน widgets ตรงๆ
-  // จะได้ค่า snapshot ตอนลงทะเบียน ไม่ใช่ค่าล่าสุด
   const widgetsRef = useRef(widgets);
   useEffect(() => { widgetsRef.current = widgets; }, [widgets]);
-
-  // updateWidget ref — เหตุผลเดียวกัน
   const updateWidgetRef = useRef(updateWidget);
   useEffect(() => { updateWidgetRef.current = updateWidget; }, [updateWidget]);
 
@@ -64,24 +97,28 @@ const App: React.FC = () => {
   const [, setIsFirstRun]                   = useState<boolean>(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
 
+  // ── currentMinute — re-compute condition ทุก 60 วินาที ────────────────────
+  const [currentMinute, setCurrentMinute] = useState<number>(() =>
+    Math.floor(Date.now() / 60_000)
+  );
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentMinute(Math.floor(Date.now() / 60_000));
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
   // ── Load on mount ──────────────────────────────────────────────────────────
   useEffect(() => {
     const init = async () => {
       let saved = null;
       try {
         saved = await loadState();
-        if (saved === null) {
-          setIsFirstRun(true);
-          setShowOnboarding(true);
-        }
+        if (saved === null) { setIsFirstRun(true); setShowOnboarding(true); }
       } catch (e) {
         console.error("[App] loadState failed:", e);
-        setToastMessage({
-          msg: "Save file is corrupted. Starting with default widgets.",
-          id: Date.now(),
-        });
+        setToastMessage({ msg: "Save file is corrupted. Starting with default widgets.", id: Date.now() });
       }
-
       if (saved) {
         if (saved.widgets.length > 0) setWidgets(saved.widgets);
         setTheme(saved.theme);
@@ -89,13 +126,9 @@ const App: React.FC = () => {
         setFontSize(saved.fontSize);
         setAlwaysOnTop(saved.alwaysOnTop);
         setAutostart(saved.autostart);
-
         if (saved.alwaysOnTop) {
-          try {
-            await getCurrentWindow().setAlwaysOnTop(true);
-          } catch (e) {
-            console.error("[App] setAlwaysOnTop on load failed:", e);
-          }
+          try { await getCurrentWindow().setAlwaysOnTop(true); }
+          catch (e) { console.error("[App] setAlwaysOnTop on load failed:", e); }
         }
       }
       setIsLoaded(true);
@@ -121,88 +154,88 @@ const App: React.FC = () => {
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.code === "Comma") {
-        e.preventDefault();
-        setIsSettingsOpen((prev) => !prev);
+      // ── App-level shortcuts — ทำงานเสมอ ───────────────────────────────────
+      if (e.ctrlKey && e.code === "Comma") { e.preventDefault(); setIsSettingsOpen((prev) => !prev); return; }
+      if (e.ctrlKey && e.code === "KeyF")  { e.preventDefault(); toggleFocusMode(); return; }
+
+      // ── Widget shortcuts ───────────────────────────────────────────────────
+      // ทำไมลบ isSettingsOpen guard ออก:
+      // user อาจกด Hidden ใน Settings แล้วทดสอบ shortcut ทันทีโดยไม่ปิด Settings
+      // guard เดิมทำให้ shortcut ไม่ทำงาน → user งง
+      // แทนที่ด้วยการเช็ค tagName เพื่อป้องกัน conflict กับ input fields เท่านั้น
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT"    ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT"
+      ) return;
+
+      const pressed = parseShortcutKey(e);
+      if (!pressed) return;
+
+      const matched = widgetsRef.current.find(
+        (w) => typeof w.data.shortcut === "string" && w.data.shortcut === pressed
+      );
+      if (!matched) return;
+
+      e.preventDefault();
+
+      // ถ้า widget ซ่อนอยู่ → แสดงขึ้นมา
+      if (!matched.isVisible) {
+        updateWidgetRef.current(matched.id, { isVisible: true });
       }
-      if (e.ctrlKey && e.code === "KeyF") {
-        e.preventDefault();
-        toggleFocusMode();
-      }
+
+      // ใช้ getDisplayLabel แทน matched.label โดยตรง
+      // ทำไม: Clock widget เก็บ label เป็น JSON string
+      setToastMessage({ msg: `⌨ ${getDisplayLabel(matched)}`, id: Date.now() });
     };
+
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
+    // ลบ isSettingsOpen ออกจาก dependency — ไม่ใช้แล้วใน handler
   }, [toggleFocusMode]);
 
   // ── Quick Capture listener ─────────────────────────────────────────────────
-  // ลงทะเบียนครั้งเดียว ใช้ ref อ่านค่าล่าสุดเสมอ
   useEffect(() => {
     const unlistenPromise = listen<{ text: string; targetType: "todo" | "notes" }>(
       "quick-capture-submit",
       (event) => {
         const { text, targetType } = event.payload;
         const currentWidgets = widgetsRef.current;
-
-        // หา widget ตัวแรกที่ visible และ type ตรง
-        const target = currentWidgets.find(
-          (w) => w.type === targetType && w.isVisible
-        );
-
+        const target = currentWidgets.find((w) => w.type === targetType && w.isVisible);
         if (!target) {
-          setToastMessage({
-            msg: `No visible ${targetType} widget found.`,
-            id: Date.now(),
-          });
+          setToastMessage({ msg: `No visible ${targetType} widget found.`, id: Date.now() });
           return;
         }
-
         if (targetType === "todo") {
           updateWidgetRef.current(target.id, {
-            todoItems: [
-              ...target.todoItems,
-              {
-                id:        crypto.randomUUID(),
-                text:      text.trim(),
-                completed: false,
-                createdAt: Date.now(),
-              },
-            ],
+            todoItems: [...target.todoItems, { id: crypto.randomUUID(), text: text.trim(), completed: false, createdAt: Date.now() }],
           });
         } else {
-          // notes: สร้าง note ใหม่โดยใช้ text เป็นทั้ง title และ content
           updateWidgetRef.current(target.id, {
-            notes: [
-              ...target.notes,
-              {
-                id:        crypto.randomUUID(),
-                title:     text.trim().slice(0, 50),
-                content:   text.trim(),
-                createdAt: Date.now(),
-                updatedAt: Date.now(),
-              },
-            ],
+            notes: [...target.notes, { id: crypto.randomUUID(), title: text.trim().slice(0, 50), content: text.trim(), createdAt: Date.now(), updatedAt: Date.now() }],
           });
         }
-
-        setToastMessage({
-          msg: `✓ Added to ${target.label}`,
-          id: Date.now(),
-        });
+        setToastMessage({ msg: `✓ Added to ${target.label}`, id: Date.now() });
       }
     );
+    return () => { unlistenPromise.then((fn) => fn()); };
+  }, []);
 
-    return () => {
-      unlistenPromise.then((fn) => fn());
-    };
-  }, []); // [] — ลงทะเบียนครั้งเดียว ใช้ ref แทน
+  // ── displayWidgets — apply condition filter ────────────────────────────────
+  const displayWidgets = useMemo(() => {
+    return widgets.map((w) => {
+      if (!w.condition?.enabled) return w;
+      const conditionMet = checkCondition(w.condition);
+      if (conditionMet) return w;
+      return { ...w, isVisible: false };
+    });
+  }, [widgets, currentMinute]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleToastDismiss      = useCallback(() => setToastMessage(null), []);
   const handleDismissOnboarding = useCallback(() => setShowOnboarding(false), []);
-
-  const handleToggleSettings = useCallback(() => {
-    setIsSettingsOpen((prev) => !prev);
-  }, []);
+  const handleToggleSettings    = useCallback(() => setIsSettingsOpen((prev) => !prev), []);
 
   const handleToggleTheme = useCallback(() => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -234,17 +267,9 @@ const App: React.FC = () => {
       if (widget.type === "clock") {
         try {
           const parsed = JSON.parse(widget.label) as Record<string, unknown>;
-          updateWidget(widgetId, {
-            label: JSON.stringify({
-              name:   trimmed,
-              use24h: parsed.use24h !== false,
-              locale: typeof parsed.locale === "string" ? parsed.locale : "th-TH",
-            }),
-          });
+          updateWidget(widgetId, { label: JSON.stringify({ name: trimmed, use24h: parsed.use24h !== false, locale: typeof parsed.locale === "string" ? parsed.locale : "th-TH" }) });
         } catch {
-          updateWidget(widgetId, {
-            label: JSON.stringify({ name: trimmed, use24h: true, locale: "th-TH" }),
-          });
+          updateWidget(widgetId, { label: JSON.stringify({ name: trimmed, use24h: true, locale: "th-TH" }) });
         }
       } else {
         updateWidget(widgetId, { label: trimmed });
@@ -275,20 +300,14 @@ const App: React.FC = () => {
       const count  = widgets.filter((w) => w.type === type).length;
       const offset = count * 30;
       addWidget({
-        id:        `${type}-${Date.now()}`,
-        type,
-        label:     entry.makeDefaultLabel(count + 1),
-        position: {
-          x: entry.defaultPosition.x + offset,
-          y: entry.defaultPosition.y + offset,
-        },
-        size:      { ...entry.defaultSize },
-        isVisible: true,
-        isLocked:  false,
-        todoItems: [],
-        notes:     [],
-        opacity:   1,
-        data:      { ...entry.defaultData },
+        id: `${type}-${Date.now()}`, type,
+        label: entry.makeDefaultLabel(count + 1),
+        position: { x: entry.defaultPosition.x + offset, y: entry.defaultPosition.y + offset },
+        size: { ...entry.defaultSize },
+        isVisible: true, isLocked: false, todoItems: [], notes: [], opacity: 1,
+        data: { ...entry.defaultData },
+        condition: null,
+        stack: { stackId: null, stackOrder: 0 },
       });
     },
     [widgets, addWidget]
@@ -318,8 +337,7 @@ const App: React.FC = () => {
   const handleSetAutostart = useCallback(
     async (value: boolean) => {
       try {
-        if (value) { await autostartEnable(); }
-        else       { await autostartDisable(); }
+        if (value) { await autostartEnable(); } else { await autostartDisable(); }
         setAutostart(value);
       } catch (e) {
         console.error("[App] autostart failed:", e);
@@ -329,17 +347,186 @@ const App: React.FC = () => {
     [setAutostart]
   );
 
+  const handleSetWidgetCondition = useCallback(
+    (widgetId: string, condition: WidgetCondition | null) => {
+      updateWidget(widgetId, { condition });
+    },
+    [updateWidget]
+  );
+
+  const handleSetWidgetShortcut = useCallback(
+    (widgetId: string, shortcut: string | null) => {
+      if (shortcut !== null) {
+        const conflict = widgets.find(
+          (w) => w.id !== widgetId && w.data.shortcut === shortcut
+        );
+        if (conflict) {
+          setToastMessage({
+            msg: `"${shortcut}" already used by "${getDisplayLabel(conflict)}". Choose another.`,
+            id: Date.now(),
+          });
+          return false;
+        }
+      }
+
+      const widget = widgets.find((w) => w.id === widgetId);
+      if (!widget) return false;
+
+      const newData = { ...widget.data };
+      if (shortcut === null) {
+        delete newData.shortcut;
+      } else {
+        newData.shortcut = shortcut;
+      }
+      updateWidget(widgetId, { data: newData });
+      return true;
+    },
+    [widgets, updateWidget]
+  );
+
+  const handleCreateWidgetStack = useCallback(
+    (widgetId: string) => {
+      const widget = widgets.find((w) => w.id === widgetId);
+      if (!widget || widget.stack.stackId) return;
+
+      updateWidget(widgetId, {
+        stack: {
+          stackId: `stack-${crypto.randomUUID()}`,
+          stackOrder: 0,
+        },
+      });
+    },
+    [widgets, updateWidget]
+  );
+
+  const handleAddWidgetToStack = useCallback(
+    (widgetId: string, targetStackId: string) => {
+      const widget = widgets.find((w) => w.id === widgetId);
+      const targetWidgets = widgets.filter((w) => w.stack.stackId === targetStackId);
+      if (!widget || widget.stack.stackId === targetStackId || targetWidgets.length === 0) return;
+
+      const normalized = normalizeStackOrders(targetWidgets);
+      const anchor = normalized[0];
+
+      normalized.forEach((stackWidget) => {
+        updateWidget(stackWidget.id, { stack: stackWidget.stack });
+      });
+
+      updateWidget(widgetId, {
+        position: { ...anchor.position },
+        size: { ...anchor.size },
+        stack: {
+          stackId: targetStackId,
+          stackOrder: normalized.length,
+        },
+      });
+    },
+    [widgets, updateWidget]
+  );
+
+  const handleRemoveWidgetFromStack = useCallback(
+    (widgetId: string) => {
+      const widget = widgets.find((w) => w.id === widgetId);
+      if (!widget?.stack.stackId) return;
+
+      const remaining = widgets.filter(
+        (w) => w.stack.stackId === widget.stack.stackId && w.id !== widgetId
+      );
+
+      normalizeStackOrders(remaining).forEach((stackWidget) => {
+        updateWidget(stackWidget.id, { stack: stackWidget.stack });
+      });
+
+      updateWidget(widgetId, {
+        stack: { stackId: null, stackOrder: 0 },
+      });
+    },
+    [widgets, updateWidget]
+  );
+
+  const handleSetActiveStackTab = useCallback(
+    (stackId: string, widgetId: string) => {
+      const stackWidgets = widgets.filter((w) => w.stack.stackId === stackId);
+      if (stackWidgets.length <= 1) return;
+
+      const ordered = normalizeStackOrders(stackWidgets);
+      const selected = ordered.find((w) => w.id === widgetId);
+      if (!selected) return;
+
+      const nextOrder = [selected, ...ordered.filter((w) => w.id !== widgetId)];
+      nextOrder.forEach((stackWidget, index) => {
+        updateWidget(stackWidget.id, {
+          stack: { ...stackWidget.stack, stackOrder: index },
+        });
+      });
+    },
+    [widgets, updateWidget]
+  );
+
+  const handleUpdateStackPosition = useCallback(
+    (stackId: string, position: { x: number; y: number }) => {
+      widgets
+        .filter((w) => w.stack.stackId === stackId)
+        .forEach((widget) => updateWidget(widget.id, { position }));
+    },
+    [widgets, updateWidget]
+  );
+
+  const handleUpdateStackSize = useCallback(
+    (stackId: string, size: { width: number; height: number }) => {
+      widgets
+        .filter((w) => w.stack.stackId === stackId)
+        .forEach((widget) => updateWidget(widget.id, { size }));
+    },
+    [widgets, updateWidget]
+  );
+
+  // ── Export / Import Layout ─────────────────────────────────────────────────
+  const handleExportLayout = useCallback(async () => {
+    try {
+      const filePath = await dialogSave({
+        defaultPath: "deskloom-layout.deskloom",
+        filters: [{ name: "DeskLoom Layout", extensions: ["deskloom"] }],
+      });
+      if (!filePath) return;
+      await writeLayoutFile(filePath, { version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop });
+      setToastMessage({ msg: "✓ Layout exported", id: Date.now() });
+    } catch (e) {
+      console.error("[App] exportLayout failed:", e);
+      setToastMessage({ msg: "Failed to export layout.", id: Date.now() });
+    }
+  }, [version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop]);
+
+  const handleImportLayout = useCallback(async () => {
+    try {
+      const filePath = await dialogOpen({
+        multiple: false,
+        filters: [{ name: "DeskLoom Layout", extensions: ["deskloom"] }],
+      });
+      if (!filePath || typeof filePath !== "string") return;
+      const imported = await readLayoutFile(filePath);
+      if (!imported) {
+        setToastMessage({ msg: "Invalid layout file. Please check the file.", id: Date.now() });
+        return;
+      }
+      setWidgets(imported.widgets);
+      setTheme(imported.theme);
+      setAccentColor(imported.accentColor);
+      setFontSize(imported.fontSize);
+      setAlwaysOnTop(imported.alwaysOnTop);
+      setToastMessage({ msg: "✓ Layout imported successfully", id: Date.now() });
+    } catch (e) {
+      console.error("[App] importLayout failed:", e);
+      setToastMessage({ msg: "Failed to import layout. File may be corrupted.", id: Date.now() });
+    }
+  }, [setWidgets, setTheme, setAccentColor, setFontSize, setAlwaysOnTop]);
+
   // ── Todo handlers ──────────────────────────────────────────────────────────
   const handleAddTodo = useCallback(
     (widgetId: string, text: string) => {
       const widget = widgets.find((w) => w.id === widgetId);
       if (!widget) return;
-      updateWidget(widgetId, {
-        todoItems: [...widget.todoItems, {
-          id: crypto.randomUUID(), text: text.trim(),
-          completed: false, createdAt: Date.now(),
-        }],
-      });
+      updateWidget(widgetId, { todoItems: [...widget.todoItems, { id: crypto.randomUUID(), text: text.trim(), completed: false, createdAt: Date.now() }] });
     },
     [widgets, updateWidget]
   );
@@ -348,11 +535,7 @@ const App: React.FC = () => {
     (widgetId: string, todoId: string) => {
       const widget = widgets.find((w) => w.id === widgetId);
       if (!widget) return;
-      updateWidget(widgetId, {
-        todoItems: widget.todoItems.map((item) =>
-          item.id === todoId ? { ...item, completed: !item.completed } : item
-        ),
-      });
+      updateWidget(widgetId, { todoItems: widget.todoItems.map((item) => item.id === todoId ? { ...item, completed: !item.completed } : item) });
     },
     [widgets, updateWidget]
   );
@@ -361,9 +544,7 @@ const App: React.FC = () => {
     (widgetId: string, todoId: string) => {
       const widget = widgets.find((w) => w.id === widgetId);
       if (!widget) return;
-      updateWidget(widgetId, {
-        todoItems: widget.todoItems.filter((item) => item.id !== todoId),
-      });
+      updateWidget(widgetId, { todoItems: widget.todoItems.filter((item) => item.id !== todoId) });
     },
     [widgets, updateWidget]
   );
@@ -372,9 +553,7 @@ const App: React.FC = () => {
     (widgetId: string) => {
       const widget = widgets.find((w) => w.id === widgetId);
       if (!widget) return;
-      updateWidget(widgetId, {
-        todoItems: widget.todoItems.filter((item) => !item.completed),
-      });
+      updateWidget(widgetId, { todoItems: widget.todoItems.filter((item) => !item.completed) });
     },
     [widgets, updateWidget]
   );
@@ -384,12 +563,7 @@ const App: React.FC = () => {
     (widgetId: string) => {
       const widget = widgets.find((w) => w.id === widgetId);
       if (!widget) return;
-      updateWidget(widgetId, {
-        notes: [...widget.notes, {
-          id: crypto.randomUUID(), title: "Untitled",
-          content: "", createdAt: Date.now(), updatedAt: Date.now(),
-        }],
-      });
+      updateWidget(widgetId, { notes: [...widget.notes, { id: crypto.randomUUID(), title: "Untitled", content: "", createdAt: Date.now(), updatedAt: Date.now() }] });
     },
     [widgets, updateWidget]
   );
@@ -398,11 +572,7 @@ const App: React.FC = () => {
     (widgetId: string, noteId: string, changes: { title?: string; content?: string }) => {
       const widget = widgets.find((w) => w.id === widgetId);
       if (!widget) return;
-      updateWidget(widgetId, {
-        notes: widget.notes.map((note) =>
-          note.id === noteId ? { ...note, ...changes, updatedAt: Date.now() } : note
-        ),
-      });
+      updateWidget(widgetId, { notes: widget.notes.map((note) => note.id === noteId ? { ...note, ...changes, updatedAt: Date.now() } : note) });
     },
     [widgets, updateWidget]
   );
@@ -411,45 +581,29 @@ const App: React.FC = () => {
     (widgetId: string, noteId: string) => {
       const widget = widgets.find((w) => w.id === widgetId);
       if (!widget) return;
-      updateWidget(widgetId, {
-        notes: widget.notes.filter((note) => note.id !== noteId),
-      });
+      updateWidget(widgetId, { notes: widget.notes.filter((note) => note.id !== noteId) });
     },
     [widgets, updateWidget]
   );
 
   const handleUpdateWidgetData = useCallback(
-    (widgetId: string, data: Record<string, unknown>) => {
-      updateWidget(widgetId, { data });
-    },
+    (widgetId: string, data: Record<string, unknown>) => { updateWidget(widgetId, { data }); },
     [updateWidget]
   );
 
   // ── Memoized callback objects ──────────────────────────────────────────────
   const widgetCallbacks = useMemo<WidgetCallbacks>(
-    () => ({
-      onPositionChange:    updateWidgetPosition,
-      onSizeChange:        updateWidgetSize,
-      onClockConfigChange: handleClockConfigChange,
-    }),
+    () => ({ onPositionChange: updateWidgetPosition, onSizeChange: updateWidgetSize, onClockConfigChange: handleClockConfigChange }),
     [updateWidgetPosition, updateWidgetSize, handleClockConfigChange]
   );
 
   const contentCallbacks = useMemo<ContentCallbacks>(
     () => ({
-      onAddTodo:          handleAddTodo,
-      onToggleTodo:       handleToggleTodo,
-      onDeleteTodo:       handleDeleteTodo,
-      onClearCompleted:   handleClearCompleted,
-      onAddNote:          handleAddNote,
-      onUpdateNote:       handleUpdateNote,
-      onDeleteNote:       handleDeleteNote,
-      onUpdateWidgetData: handleUpdateWidgetData,
+      onAddTodo: handleAddTodo, onToggleTodo: handleToggleTodo, onDeleteTodo: handleDeleteTodo,
+      onClearCompleted: handleClearCompleted, onAddNote: handleAddNote, onUpdateNote: handleUpdateNote,
+      onDeleteNote: handleDeleteNote, onUpdateWidgetData: handleUpdateWidgetData,
     }),
-    [
-      handleAddTodo, handleToggleTodo, handleDeleteTodo, handleClearCompleted,
-      handleAddNote, handleUpdateNote, handleDeleteNote, handleUpdateWidgetData,
-    ]
+    [handleAddTodo, handleToggleTodo, handleDeleteTodo, handleClearCompleted, handleAddNote, handleUpdateNote, handleDeleteNote, handleUpdateWidgetData]
   );
 
   const addableEntries = useMemo(() => getAddableEntries(), []);
@@ -467,16 +621,8 @@ const App: React.FC = () => {
       } as React.CSSProperties}
     >
       {!isSettingsOpen && (
-        <button
-          className="gear-button"
-          onClick={handleToggleSettings}
-          title="Settings (Ctrl+,)"
-          aria-label="Open Settings"
-        >
-          ⚙
-        </button>
+        <button className="gear-button" onClick={handleToggleSettings} title="Settings (Ctrl+,)" aria-label="Open Settings">⚙</button>
       )}
-
       {!isSettingsOpen && (
         <button
           className={`focus-btn${isFocusMode ? " focus-btn--active" : ""}`}
@@ -487,12 +633,14 @@ const App: React.FC = () => {
           {isFocusMode ? "◎" : "○"}
         </button>
       )}
-
       <DesktopCanvas
-        widgets={widgets}
+        widgets={displayWidgets}
         widgetCallbacks={widgetCallbacks}
         contentCallbacks={contentCallbacks}
         isFocusMode={isFocusMode}
+        onSetActiveStackTab={handleSetActiveStackTab}
+        onUpdateStackPosition={handleUpdateStackPosition}
+        onUpdateStackSize={handleUpdateStackSize}
       />
       <SettingsPanel
         isOpen={isSettingsOpen}
@@ -516,12 +664,16 @@ const App: React.FC = () => {
         onRemoveWidget={handleRemoveWidget}
         onSetAlwaysOnTop={handleSetAlwaysOnTop}
         onSetAutostart={handleSetAutostart}
+        onExportLayout={handleExportLayout}
+        onImportLayout={handleImportLayout}
+        onSetWidgetCondition={handleSetWidgetCondition}
+        onSetWidgetShortcut={handleSetWidgetShortcut}
+        onCreateWidgetStack={handleCreateWidgetStack}
+        onAddWidgetToStack={handleAddWidgetToStack}
+        onRemoveWidgetFromStack={handleRemoveWidgetFromStack}
       />
       <Toast message={toastMessage?.msg ?? ""} onDismiss={handleToastDismiss} />
-      <OnboardingOverlay
-        isVisible={showOnboarding}
-        onDismiss={handleDismissOnboarding}
-      />
+      <OnboardingOverlay isVisible={showOnboarding} onDismiss={handleDismissOnboarding} />
     </div>
   );
 };
