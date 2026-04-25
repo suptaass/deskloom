@@ -4,12 +4,12 @@
 
 **A minimal desktop widget app for Windows**
 
-![Version](https://img.shields.io/badge/version-v0.1--beta-blue)
+![Version](https://img.shields.io/badge/version-v0.6.0-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%2011-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%20v2-orange)
 
-![DeskLoom Screenshot](docs/screenshot-main.png)
+[**⬇ Download v0.6.0**](https://github.com/suptaass/deskloom/releases/download/v0.6.0/DeskLoom_0.6.0_x64-setup.exe) · [Releases](../../releases) · [Report a bug](../../issues)
 
 </div>
 
@@ -22,15 +22,25 @@
 | 🕐 **Clock widget** | 12h/24h toggle, Thai and English locale |
 | ✅ **Todo widget** | Add, complete, delete tasks with progress bar |
 | 📝 **Notes widget** | Create, edit, delete notes |
+| ⏱️ **Pomodoro** | Work/break timer — Premium |
+| 📋 **Habit Tracker** | Daily habit streaks — Premium |
+| 🔗 **Quick Links** | One-click URL launcher — Premium |
+| 🌤️ **Weather** | Current weather via OpenWeatherMap — Premium |
 | 🖱️ **Drag & resize** | Move and resize all widgets freely |
-| ➕ **Multiple instances** | Add extra Todo and Notes widgets |
+| 🖥️ **Per-widget OS window** | Each widget is an independent system window |
+| 🔢 **Multiple instances** | Add as many widget instances as you need |
 | 🌙 **Dark / Light theme** | Smooth transition between modes |
 | 🎨 **Accent color** | 8 presets + custom color picker |
-| 🔠 **Font size** | Small / Medium / Large |
 | 🔆 **Per-widget opacity** | 20%–100% |
-| 📌 **Always on Top** | Float above all windows |
+| 👆 **Click-through mode** | Mouse clicks pass through widget to desktop |
+| 📌 **Always on Top** | Per-widget float above all windows |
 | 🚀 **Start with Windows** | Autostart on login |
-| 🗂️ **System Tray** | Minimize to tray, click icon to toggle |
+| 🗂️ **System Tray** | Lives in tray — click to open Settings |
+| 🗃️ **Widget stacking** | Group widgets into tabbed stacks |
+| 📅 **Schedule visibility** | Show/hide widgets by time and day |
+| ⌨️ **Shortcut keys** | Custom hotkey per widget |
+| 🖥️ **Multi-monitor** | Assign each widget to a specific monitor |
+| 💾 **Export / Import layout** | Save and restore widget configurations |
 
 ---
 
@@ -40,57 +50,35 @@
 |-----------|------------|
 | ![Dark](docs/screenshot-dark.png) | ![Light](docs/screenshot-light.png) |
 
-<div align="center">
-
-**Full View**
-
-![Main](docs/screenshot-main.png)
-
-</div>
-
 ---
 
 ## 💻 Requirements
 
-- **Windows 11** (64-bit) — primary supported platform
-- [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) — pre-installed on most Windows 11 systems
+- **Windows 10 / 11** (64-bit)
+- WebView2 Runtime — the installer handles this automatically
 
 ---
 
 ## 🚀 Installation
 
-### Option A — Download release *(recommended)*
+### Option A — Download installer *(recommended)*
 
-1. Go to the [Releases](../../releases) page
-2. Download `DeskLoom_0.1.0_x64-setup.exe`
-3. Run the installer
-4. DeskLoom launches automatically and appears in the system tray
+1. Download [**DeskLoom_0.6.0_x64-setup.exe**](https://github.com/suptaass/deskloom/releases/download/v0.6.0/DeskLoom_0.6.0_x64-setup.exe)
+2. Run the installer
+3. DeskLoom starts automatically — look for the icon in the **system tray** (bottom-right corner)
+4. Click the tray icon → open Settings
 
 ### Option B — Build from source
 
-**Prerequisites:**
-
-- [Node.js](https://nodejs.org/) v18+
-- [pnpm](https://pnpm.io/) v8+
-- [Rust](https://rustup.rs/) stable toolchain
-- Microsoft C++ Build Tools
+**Prerequisites:** Node.js v18+ · pnpm · Rust stable · Microsoft C++ Build Tools
 
 ```powershell
-# Clone the repository
 git clone https://github.com/suptaass/deskloom.git
 cd deskloom
-
-# Install dependencies
 pnpm install
-
-# Run in development mode
-pnpm tauri dev
-
-# Build installer
-pnpm tauri build
+pnpm tauri dev       # development
+pnpm tauri build     # build installer
 ```
-
-Installer output: `src-tauri/target/release/bundle/nsis/`
 
 ---
 
@@ -98,48 +86,41 @@ Installer output: `src-tauri/target/release/bundle/nsis/`
 
 | Action | How |
 |--------|-----|
-| Move widget | Click header and drag |
+| Open Settings | Click system tray icon |
+| Move widget | Drag widget header |
 | Resize widget | Drag any edge or corner |
-| Open Settings | `Ctrl+,` |
-| Lock widget position | Settings → Widget → 🔓 Free |
-| Change theme | Settings → Appearance → Theme |
-| Add Todo / Notes widget | Settings → Add Widgets |
-| Hide to tray | Click ✕ on title bar |
-| Show from tray | Click the tray icon |
+| Lock position | Settings → Widget → Lock |
+| Hide a widget | Settings → Widget → Hide |
+| Add widget | Settings → Add Widgets |
 | Quit | Right-click tray icon → Quit |
 
 ---
 
 ## 💾 Data Storage
 
-DeskLoom saves all state to:
+All data is saved locally to:
 
 ```
 %APPDATA%\com.deskloom.app\state.json
 ```
 
-- Written atomically (temp file → rename) to prevent data corruption
-- Loads automatically on next launch
-- Data is preserved after Quit from system tray
+No account required. No internet connection needed (except Weather widget and license activation).
 
 ---
 
-## ⚠️ Known Limitations
+## 🔑 Premium
 
-- **Windows 10** — not yet tested; Windows 11 is the primary supported platform
-- **Many widgets** — adding more than ~10 widget instances will cause overlap; there is no auto-layout
-- **Multi-monitor** — widget positions are not monitor-aware; may shift on secondary displays
-- **No cloud sync** — data is stored locally only
-- **Widget types** — currently Clock, Todo, and Notes only; more planned in future versions
+Premium unlocks: **Pomodoro · Habit Tracker · Quick Links · Weather widget**
+
+Purchase a license key on [Gumroad](https://suptaass.gumroad.com) → enter it in Settings → Activate.
 
 ---
 
 ## 🗺️ Roadmap
 
-- **v0.2** — bug fixes from user feedback, hidden widget indicator
-- **v0.3** — new widgets: Quick Links, Calendar, Weather, Pomodoro
-- **v1.0** — per-widget OS window, click-through mode, snap to edge, multi-monitor support
-- **v1.x** — widget marketplace, cloud sync, customization presets
+- **v0.6.x** — bug fixes and polish from user feedback
+- **v0.7** — widget themes, snap-to-edge, new widget types
+- **v1.0** — widget marketplace, cloud sync
 
 ---
 
@@ -151,8 +132,7 @@ DeskLoom saves all state to:
 | UI framework | React 19 + TypeScript |
 | State management | Zustand 5 |
 | Persistence | Tauri Filesystem API |
-| Build tool | Vite 6 |
-| Package manager | pnpm |
+| Build tool | Vite 7 |
 
 ---
 
