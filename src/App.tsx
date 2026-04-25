@@ -85,6 +85,8 @@ const App: React.FC = () => {
   const updateWidgetSize     = useAppStore((state) => state.updateWidgetSize);
   const resetLayout          = useAppStore((state) => state.resetLayout);
   const toggleFocusMode      = useAppStore((state) => state.toggleFocusMode);
+  const weatherApiKey        = useAppStore((state) => state.weatherApiKey);
+  const setWeatherApiKey     = useAppStore((state) => state.setWeatherApiKey);
 
   const loadLicenseFromDisk = useLicenseStore((s) => s.loadFromDisk);
 
@@ -152,14 +154,14 @@ const App: React.FC = () => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
       try {
-        await saveState({ version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop });
+        await saveState({ version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop, weatherApiKey });
       } catch (error) {
         console.error("[App] saveState failed:", error);
         setToastMessage({ msg: "Failed to save data. Please check app permissions.", id: Date.now() });
       }
     }, 500);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop, isLoaded]);
+  }, [version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop, weatherApiKey, isLoaded]);
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -514,13 +516,13 @@ const App: React.FC = () => {
         filters: [{ name: "DeskLoom Layout", extensions: ["deskloom"] }],
       });
       if (!filePath) return;
-      await writeLayoutFile(filePath, { version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop });
+      await writeLayoutFile(filePath, { version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop, weatherApiKey });
       setToastMessage({ msg: "✓ Layout exported", id: Date.now() });
     } catch (e) {
       console.error("[App] exportLayout failed:", e);
       setToastMessage({ msg: "Failed to export layout.", id: Date.now() });
     }
-  }, [version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop]);
+  }, [version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop, weatherApiKey]);
 
   const handleImportLayout = useCallback(async () => {
     try {
@@ -603,6 +605,8 @@ const App: React.FC = () => {
         onAddWidgetToStack={handleAddWidgetToStack}
         onRemoveWidgetFromStack={handleRemoveWidgetFromStack}
         onSetClickThrough={handleSetClickThrough}
+        weatherApiKey={weatherApiKey}
+        onWeatherApiKeyChange={setWeatherApiKey}
       />
       <Toast message={toastMessage?.msg ?? ""} onDismiss={handleToastDismiss} />
       <OnboardingOverlay isVisible={showOnboarding} onDismiss={handleDismissOnboarding} />

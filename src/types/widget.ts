@@ -55,11 +55,12 @@ export interface Widget {
 }
 
 export interface AppState {
-  version:     number;
-  widgets:     Widget[];
-  theme:       "dark" | "light";
-  accentColor: string;
-  fontSize:    "small" | "medium" | "large";
-  autostart:   boolean;
-  alwaysOnTop: boolean;
+  version:       number;
+  widgets:       Widget[];
+  theme:         "dark" | "light";
+  accentColor:   string;
+  fontSize:      "small" | "medium" | "large";
+  autostart:     boolean;
+  alwaysOnTop:   boolean;
+  weatherApiKey: string;
 }

@@ -87,17 +87,19 @@ interface AppStore extends AppState {
   setWidgetMonitor:      (id: string, name: string | null) => void;
   resetLayout:           () => void;
   toggleFocusMode:       () => void;
+  setWeatherApiKey:      (key: string) => void;
 }
 
 export const useAppStore = create<AppStore>((set) => ({
-  version:     9,
-  widgets:     DEFAULT_WIDGETS,
-  theme:       "dark",
-  accentColor: "#6C8EF5",
-  fontSize:    "medium",
-  autostart:   false,
-  alwaysOnTop: false,
-  isFocusMode: false,
+  version:       9,
+  widgets:       DEFAULT_WIDGETS,
+  theme:         "dark",
+  accentColor:   "#6C8EF5",
+  fontSize:      "medium",
+  autostart:     false,
+  alwaysOnTop:   false,
+  isFocusMode:   false,
+  weatherApiKey: "",
 
   setWidgets: (widgets) => set({ widgets }),
 
@@ -159,6 +161,8 @@ export const useAppStore = create<AppStore>((set) => ({
 
   toggleFocusMode: () =>
     set((state) => ({ isFocusMode: !state.isFocusMode })),
+
+  setWeatherApiKey: (weatherApiKey) => set({ weatherApiKey }),
 }));
 
 export { DEFAULT_WIDGET_IDS };

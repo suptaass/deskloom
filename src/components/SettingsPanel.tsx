@@ -50,6 +50,8 @@ interface SettingsPanelProps {
   onAddWidgetToStack: (widgetId: string, targetStackId: string) => void;
   onRemoveWidgetFromStack: (widgetId: string) => void;
   onSetClickThrough: (widgetId: string, value: boolean) => void;
+  weatherApiKey: string;
+  onWeatherApiKeyChange: (key: string) => void;
 }
 
 function getDisplayLabel(widget: Widget): string {
@@ -91,6 +93,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onExportLayout, onImportLayout, onSetWidgetCondition, onSetWidgetShortcut,
   onCreateWidgetStack, onAddWidgetToStack, onRemoveWidgetFromStack,
   onSetClickThrough,
+  weatherApiKey, onWeatherApiKeyChange,
 }) => {
   const [renameValues,      setRenameValues]      = useState<Record<string, string>>({});
   const [showResetConfirm,  setShowResetConfirm]  = useState(false);
@@ -98,6 +101,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [expandedCondition, setExpandedCondition] = useState<string | null>(null);
   const [stackTargets,      setStackTargets]      = useState<Record<string, string>>({});
   const [showLicenseModal,  setShowLicenseModal]  = useState(false);
+  const [showApiKey,        setShowApiKey]        = useState(false);
 
   const isPremium = useLicenseStore((s) => s.isPremium);
   const email     = useLicenseStore((s) => s.email);
@@ -365,6 +369,37 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <div style={{ ...rowStyle, marginBottom: 0 }}>
           <div><p style={{ fontSize: "13px" }}>Start with Windows</p><p style={subTextStyle}>Launch on login</p></div>
           <button style={toggleBtnStyle(autostart)} onClick={() => onSetAutostart(!autostart)}>{autostart ? "On" : "Off"}</button>
+        </div>
+      </div>
+
+      {/* Integrations */}
+      <div style={sectionStyle}>
+        <p style={sectionTitleStyle}>Integrations</p>
+        <p style={{ ...subTextStyle, marginBottom: "8px" }}>OpenWeatherMap API Key</p>
+        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+          <input
+            type={showApiKey ? "text" : "password"}
+            value={weatherApiKey}
+            onChange={(e) => onWeatherApiKeyChange(e.target.value)}
+            placeholder="Paste your API key here"
+            style={{
+              flex: 1,
+              padding: "5px 8px",
+              borderRadius: "6px",
+              border: "1px solid var(--btn-border)",
+              background: "var(--btn-bg)",
+              color: "var(--text-primary)",
+              fontSize: "12px",
+              outline: "none",
+              fontFamily: "inherit",
+            }}
+          />
+          <button
+            style={{ ...baseBtnStyle, padding: "4px 8px", fontSize: "11px" }}
+            onClick={() => setShowApiKey((v) => !v)}
+          >
+            {showApiKey ? "Hide" : "Show"}
+          </button>
         </div>
       </div>
 

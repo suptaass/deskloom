@@ -221,10 +221,13 @@ function parseAppState(parsed: Record<string, unknown>): AppState {
   const alwaysOnTop: boolean =
     typeof parsed.alwaysOnTop === "boolean" ? parsed.alwaysOnTop : false;
 
+  const weatherApiKey: string =
+    typeof parsed.weatherApiKey === "string" ? parsed.weatherApiKey : "";
+
   const version: number =
     typeof parsed.version === "number" ? parsed.version : 0;
 
-  return { version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop };
+  return { version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop, weatherApiKey };
 }
 
 export async function loadState(): Promise<AppState | null> {
