@@ -1,4 +1,4 @@
-# Phase 10-3 — Weather API Key UI
+# Phase 10-3 + 10-4 — Weather API Key UI & Version Bump v0.6.0
 
 ## เป้าหมาย
 - ให้ user กรอก OpenWeatherMap API key ใน Settings
@@ -70,3 +70,53 @@ npx tsc --noEmit   → ผ่าน (0 errors)
 - เปิด app → Settings → Integrations section ปรากฏ
 - กรอก key → Show → เห็น plain text → Hide → masked อีกครั้ง
 - ปิด/เปิด app → key ยังอยู่
+
+---
+
+---
+
+# Phase 10-4 — Version Bump v0.6.0 + Build Installer
+
+## เป้าหมาย
+- bump version 3 ไฟล์ให้ตรงกัน → `0.6.0`
+- `pnpm tauri build` → ได้ installer พร้อมแจก
+- `git tag v0.6.0` → mark จุด release
+
+---
+
+## ทำไม
+ทุก release ต้องมี version ที่ตรงกันใน 3 ที่:
+- `tauri.conf.json` — ชื่อไฟล์ installer (`DeskLoom_0.6.0_x64-setup.exe`)
+- `Cargo.toml` — version ของ Rust binary
+- `appStore.ts` → `version: 10` — migration version ของ state.json (ใช้ detect ว่า state เก่าต้อง migrate ไหม)
+
+ถ้า 3 ที่ไม่ตรงกัน → installer ชื่อไม่ตรง / state migration อาจ skip / Cargo build อาจ conflict
+
+---
+
+## สิ่งที่ทำ
+
+| ไฟล์ | เปลี่ยน |
+|---|---|
+| `src-tauri/tauri.conf.json` | `"version": "0.5.0"` → `"0.6.0"` |
+| `src-tauri/Cargo.toml` | `version = "0.5.0"` → `"0.6.0"` |
+| `src/store/appStore.ts` | `version: 9` → `version: 10` |
+
+---
+
+## ผลลัพธ์
+
+```
+src-tauri/target/release/bundle/
+├── msi/   DeskLoom_0.6.0_x64_en-US.msi
+└── nsis/  DeskLoom_0.6.0_x64-setup.exe   ← แจกให้ user อันนี้
+```
+
+---
+
+## Verification
+```
+pnpm tauri build   → Finished 2 bundles
+git tag v0.6.0
+git push origin main --tags
+```

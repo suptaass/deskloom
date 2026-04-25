@@ -91,7 +91,7 @@ interface AppStore extends AppState {
 }
 
 export const useAppStore = create<AppStore>((set) => ({
-  version:       9,
+  version:       10,
   widgets:       DEFAULT_WIDGETS,
   theme:         "dark",
   accentColor:   "#6C8EF5",

@@ -1,6 +1,6 @@
 {
   "productName": "DeskLoom",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "identifier": "com.deskloom.app",
   "build": {
     "beforeDevCommand": "pnpm dev",
