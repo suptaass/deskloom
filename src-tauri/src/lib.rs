@@ -3,7 +3,7 @@
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager, WindowEvent,
+    Emitter, Manager, WindowEvent,
 };
 use tauri_plugin_global_shortcut::{
     Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState,
@@ -45,21 +45,29 @@ pub fn run() {
                 },
             )?;
 
-            let show_item =
-                MenuItem::with_id(app, "show", "Show DeskLoom", true, None::<&str>)?;
+            let settings_item =
+                MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
+            let focus_item =
+                MenuItem::with_id(app, "focus", "Focus Mode", true, None::<&str>)?;
             let quit_item =
                 MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
+            let menu = Menu::with_items(app, &[&settings_item, &focus_item, &quit_item])?;
 
             let _tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .tooltip("DeskLoom")
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id.as_ref() {
-                    "show" => {
+                    "settings" => {
                         if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.emit("tray-open-settings", ());
                             let _ = window.show();
                             let _ = window.set_focus();
+                        }
+                    }
+                    "focus" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.emit("tray-toggle-focus", ());
                         }
                     }
                     "quit" => { app.exit(0); }
@@ -77,6 +85,7 @@ pub fn run() {
                             if window.is_visible().unwrap_or(false) {
                                 let _ = window.hide();
                             } else {
+                                let _ = window.emit("tray-open-settings", ());
                                 let _ = window.show();
                                 let _ = window.set_focus();
                             }
@@ -89,8 +98,11 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
-                api.prevent_close();
-                let _ = window.hide();
+                let label = window.label();
+                if label == "main" || label == "quick-capture" {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
             }
         })
         .run(tauri::generate_context!())

@@ -47,8 +47,11 @@ export interface Widget {
   notes:     Note[];
   opacity:   number;
   data:      Record<string, unknown>;
-  condition: WidgetCondition | null;
-  stack:     WidgetStack;
+  condition:            WidgetCondition | null;
+  stack:                WidgetStack;
+  alwaysOnTopPerWidget: boolean;
+  clickThrough:         boolean;
+  monitorName:          string | null;
 }
 
 export interface AppState {

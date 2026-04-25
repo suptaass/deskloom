@@ -18,8 +18,11 @@ export const DEFAULT_WIDGETS: Widget[] = [
     notes: [],
     opacity: 1,
     data: {},
-    condition: null,
-    stack: { stackId: null, stackOrder: 0 },
+    condition:            null,
+    stack:                { stackId: null, stackOrder: 0 },
+    alwaysOnTopPerWidget: false,
+    clickThrough:         false,
+    monitorName:          null,
   },
   {
     id: "todo-1",
@@ -37,8 +40,11 @@ export const DEFAULT_WIDGETS: Widget[] = [
     notes: [],
     opacity: 1,
     data: {},
-    condition: null,
-    stack: { stackId: null, stackOrder: 0 },
+    condition:            null,
+    stack:                { stackId: null, stackOrder: 0 },
+    alwaysOnTopPerWidget: false,
+    clickThrough:         false,
+    monitorName:          null,
   },
   {
     id: "notes-1",
@@ -55,8 +61,11 @@ export const DEFAULT_WIDGETS: Widget[] = [
     ],
     opacity: 1,
     data: {},
-    condition: null,
-    stack: { stackId: null, stackOrder: 0 },
+    condition:            null,
+    stack:                { stackId: null, stackOrder: 0 },
+    alwaysOnTopPerWidget: false,
+    clickThrough:         false,
+    monitorName:          null,
   },
 ];
 
@@ -74,12 +83,14 @@ interface AppStore extends AppState {
   setOpacity:            (id: string, opacity: number) => void;
   setAlwaysOnTop:        (value: boolean) => void;
   setAutostart:          (value: boolean) => void;
+  setClickThrough:       (id: string, value: boolean) => void;
+  setWidgetMonitor:      (id: string, name: string | null) => void;
   resetLayout:           () => void;
   toggleFocusMode:       () => void;
 }
 
 export const useAppStore = create<AppStore>((set) => ({
-  version:     8,
+  version:     9,
   widgets:     DEFAULT_WIDGETS,
   theme:       "dark",
   accentColor: "#6C8EF5",
@@ -126,6 +137,16 @@ export const useAppStore = create<AppStore>((set) => ({
 
   setAlwaysOnTop: (alwaysOnTop) => set({ alwaysOnTop }),
   setAutostart:   (autostart)   => set({ autostart }),
+
+  setClickThrough: (id, value) =>
+    set((state) => ({
+      widgets: state.widgets.map((w) => w.id === id ? { ...w, clickThrough: value } : w),
+    })),
+
+  setWidgetMonitor: (id, name) =>
+    set((state) => ({
+      widgets: state.widgets.map((w) => w.id === id ? { ...w, monitorName: name } : w),
+    })),
 
   resetLayout: () =>
     set((state) => ({

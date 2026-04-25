@@ -23,6 +23,8 @@ export interface WidgetRegistryEntry {
   makeDefaultLabel: (count: number) => string;
   /** ถ้า true = ลบไม่ได้ และไม่แสดงปุ่ม + Add ใน SettingsPanel */
   isProtected: boolean;
+  /** ถ้า true = ต้องมี Premium license จึงจะเพิ่มได้ */
+  isPremium: boolean;
 }
 
 export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
@@ -36,6 +38,7 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     makeDefaultLabel: () =>
       JSON.stringify({ name: "Clock", use24h: true, locale: "th-TH" }),
     isProtected: true,
+    isPremium:   false,
   },
   {
     type: "todo",
@@ -46,6 +49,7 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     defaultData: {},
     makeDefaultLabel: (count) => `Tasks ${count}`,
     isProtected: false,
+    isPremium:   false,
   },
   {
     type: "notes",
@@ -56,6 +60,7 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     defaultData: {},
     makeDefaultLabel: (count) => `Notes ${count}`,
     isProtected: false,
+    isPremium:   false,
   },
   {
     type: "quicklinks",
@@ -66,6 +71,7 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     defaultData: { links: [] },
     makeDefaultLabel: (count) => `Quick Links ${count}`,
     isProtected: false,
+    isPremium:   false,
   },
   {
     type: "calendar",
@@ -76,6 +82,7 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     defaultData: {},
     makeDefaultLabel: (count) => `Calendar ${count}`,
     isProtected: false,
+    isPremium:   false,
   },
   {
     type: "weather",
@@ -86,6 +93,7 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     defaultData: {},
     makeDefaultLabel: (count) => `Weather ${count}`,
     isProtected: false,
+    isPremium:   false,
   },
   {
     type: "pomodoro",
@@ -96,6 +104,7 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     defaultData: { workMinutes: 25, breakMinutes: 5 },
     makeDefaultLabel: (count) => `Pomodoro ${count}`,
     isProtected: false,
+    isPremium:   true,
   },
   {
     type: "habittracker",
@@ -106,6 +115,7 @@ export const WIDGET_REGISTRY: WidgetRegistryEntry[] = [
     defaultData: { habits: [] },
     makeDefaultLabel: (count) => `Habits ${count}`,
     isProtected: false,
+    isPremium:   true,
   },
 ];
 

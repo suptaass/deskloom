@@ -8,16 +8,16 @@ import {
   enable as autostartEnable,
   disable as autostartDisable,
 } from "@tauri-apps/plugin-autostart";
-import DesktopCanvas from "./components/DesktopCanvas";
-import type { WidgetCallbacks, ContentCallbacks } from "./components/DesktopCanvas";
 import SettingsPanel from "./components/SettingsPanel";
 import Toast from "./components/Toast";
 import OnboardingOverlay from "./components/OnboardingOverlay";
+import { useWidgetWindowSync } from "./hooks/useWidgetWindowSync";
 import { useAppStore, DEFAULT_WIDGET_IDS } from "./store/appStore";
 import { loadState, saveState, writeLayoutFile, readLayoutFile } from "./utils/storage";
 import { checkCondition } from "./utils/condition";
 import { getRegistryEntry, getAddableEntries, WidgetType } from "./registry/widgetRegistry";
 import { Widget, WidgetCondition } from "./types/widget";
+import { useLicenseStore } from "./store/licenseStore";
 
 const FONT_SIZE_MAP: Record<"small" | "medium" | "large", string> = {
   small: "12px",
@@ -74,6 +74,8 @@ const App: React.FC = () => {
   const setAccentColor       = useAppStore((state) => state.setAccentColor);
   const setFontSize          = useAppStore((state) => state.setFontSize);
   const setOpacity           = useAppStore((state) => state.setOpacity);
+  const setClickThrough      = useAppStore((state) => state.setClickThrough);
+  const setWidgetMonitor     = useAppStore((state) => state.setWidgetMonitor);
   const setAlwaysOnTop       = useAppStore((state) => state.setAlwaysOnTop);
   const setAutostart         = useAppStore((state) => state.setAutostart);
   const updateWidget         = useAppStore((state) => state.updateWidget);
@@ -83,6 +85,8 @@ const App: React.FC = () => {
   const updateWidgetSize     = useAppStore((state) => state.updateWidgetSize);
   const resetLayout          = useAppStore((state) => state.resetLayout);
   const toggleFocusMode      = useAppStore((state) => state.toggleFocusMode);
+
+  const loadLicenseFromDisk = useLicenseStore((s) => s.loadFromDisk);
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -111,6 +115,8 @@ const App: React.FC = () => {
   // ── Load on mount ──────────────────────────────────────────────────────────
   useEffect(() => {
     const init = async () => {
+      await loadLicenseFromDisk();
+
       let saved = null;
       try {
         saved = await loadState();
@@ -134,7 +140,7 @@ const App: React.FC = () => {
       setIsLoaded(true);
     };
     init();
-  }, [setWidgets, setTheme, setAccentColor, setFontSize, setAlwaysOnTop, setAutostart]);
+  }, [setWidgets, setTheme, setAccentColor, setFontSize, setAlwaysOnTop, setAutostart, loadLicenseFromDisk]);
 
   // ── Auto-save ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -195,6 +201,21 @@ const App: React.FC = () => {
     // ลบ isSettingsOpen ออกจาก dependency — ไม่ใช้แล้วใน handler
   }, [toggleFocusMode]);
 
+  // ── Tray events ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    const unlistenPromise = listen("tray-open-settings", () => {
+      setIsSettingsOpen(true);
+    });
+    return () => { unlistenPromise.then((fn) => fn()); };
+  }, []);
+
+  useEffect(() => {
+    const unlistenPromise = listen("tray-toggle-focus", () => {
+      toggleFocusMode();
+    });
+    return () => { unlistenPromise.then((fn) => fn()); };
+  }, [toggleFocusMode]);
+
   // ── Quick Capture listener ─────────────────────────────────────────────────
   useEffect(() => {
     const unlistenPromise = listen<{ text: string; targetType: "todo" | "notes" }>(
@@ -232,10 +253,42 @@ const App: React.FC = () => {
     });
   }, [widgets, currentMinute]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const { createWidgetWindow, destroyWidgetWindow } = useWidgetWindowSync(
+    displayWidgets,
+    theme,
+    accentColor,
+    fontSize,
+    alwaysOnTop,
+    {
+      onPositionChange: updateWidgetPosition,
+      onSizeChange:     updateWidgetSize,
+      onDataChange:     (id, changes) => updateWidget(id, changes),
+      onMonitorChange:  setWidgetMonitor,
+    },
+    isLoaded
+  );
+
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    displayWidgets
+      .filter((w) => w.isVisible)
+      .forEach((w) => { void createWidgetWindow(w); });
+
+    return () => {
+      displayWidgets.forEach((w) => { void destroyWidgetWindow(w.id); });
+    };
+  }, [isLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleToastDismiss      = useCallback(() => setToastMessage(null), []);
   const handleDismissOnboarding = useCallback(() => setShowOnboarding(false), []);
   const handleToggleSettings    = useCallback(() => setIsSettingsOpen((prev) => !prev), []);
+
+  const handleCloseSettings = useCallback(async () => {
+    setIsSettingsOpen(false);
+    try { await getCurrentWindow().hide(); } catch { /* ignore */ }
+  }, []);
 
   const handleToggleTheme = useCallback(() => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -280,17 +333,14 @@ const App: React.FC = () => {
 
   const handleResetLayout = useCallback(() => resetLayout(), [resetLayout]);
 
-  const handleClockConfigChange = useCallback(
-    (widgetId: string, changes: { use24h?: boolean; locale?: string; newLabel?: string }) => {
-      if (!changes.newLabel) return;
-      updateWidget(widgetId, { label: changes.newLabel });
-    },
-    [updateWidget]
-  );
-
   const handleSetOpacity = useCallback(
     (widgetId: string, opacity: number) => setOpacity(widgetId, opacity),
     [setOpacity]
+  );
+
+  const handleSetClickThrough = useCallback(
+    (widgetId: string, value: boolean) => setClickThrough(widgetId, value),
+    [setClickThrough]
   );
 
   const handleAddWidgetInstance = useCallback(
@@ -306,8 +356,11 @@ const App: React.FC = () => {
         size: { ...entry.defaultSize },
         isVisible: true, isLocked: false, todoItems: [], notes: [], opacity: 1,
         data: { ...entry.defaultData },
-        condition: null,
-        stack: { stackId: null, stackOrder: 0 },
+        condition:            null,
+        stack:                { stackId: null, stackOrder: 0 },
+        alwaysOnTopPerWidget: false,
+        clickThrough:         false,
+        monitorName:          null,
       });
     },
     [widgets, addWidget]
@@ -444,43 +497,6 @@ const App: React.FC = () => {
     [widgets, updateWidget]
   );
 
-  const handleSetActiveStackTab = useCallback(
-    (stackId: string, widgetId: string) => {
-      const stackWidgets = widgets.filter((w) => w.stack.stackId === stackId);
-      if (stackWidgets.length <= 1) return;
-
-      const ordered = normalizeStackOrders(stackWidgets);
-      const selected = ordered.find((w) => w.id === widgetId);
-      if (!selected) return;
-
-      const nextOrder = [selected, ...ordered.filter((w) => w.id !== widgetId)];
-      nextOrder.forEach((stackWidget, index) => {
-        updateWidget(stackWidget.id, {
-          stack: { ...stackWidget.stack, stackOrder: index },
-        });
-      });
-    },
-    [widgets, updateWidget]
-  );
-
-  const handleUpdateStackPosition = useCallback(
-    (stackId: string, position: { x: number; y: number }) => {
-      widgets
-        .filter((w) => w.stack.stackId === stackId)
-        .forEach((widget) => updateWidget(widget.id, { position }));
-    },
-    [widgets, updateWidget]
-  );
-
-  const handleUpdateStackSize = useCallback(
-    (stackId: string, size: { width: number; height: number }) => {
-      widgets
-        .filter((w) => w.stack.stackId === stackId)
-        .forEach((widget) => updateWidget(widget.id, { size }));
-    },
-    [widgets, updateWidget]
-  );
-
   // ── Export / Import Layout ─────────────────────────────────────────────────
   const handleExportLayout = useCallback(async () => {
     try {
@@ -521,91 +537,6 @@ const App: React.FC = () => {
     }
   }, [setWidgets, setTheme, setAccentColor, setFontSize, setAlwaysOnTop]);
 
-  // ── Todo handlers ──────────────────────────────────────────────────────────
-  const handleAddTodo = useCallback(
-    (widgetId: string, text: string) => {
-      const widget = widgets.find((w) => w.id === widgetId);
-      if (!widget) return;
-      updateWidget(widgetId, { todoItems: [...widget.todoItems, { id: crypto.randomUUID(), text: text.trim(), completed: false, createdAt: Date.now() }] });
-    },
-    [widgets, updateWidget]
-  );
-
-  const handleToggleTodo = useCallback(
-    (widgetId: string, todoId: string) => {
-      const widget = widgets.find((w) => w.id === widgetId);
-      if (!widget) return;
-      updateWidget(widgetId, { todoItems: widget.todoItems.map((item) => item.id === todoId ? { ...item, completed: !item.completed } : item) });
-    },
-    [widgets, updateWidget]
-  );
-
-  const handleDeleteTodo = useCallback(
-    (widgetId: string, todoId: string) => {
-      const widget = widgets.find((w) => w.id === widgetId);
-      if (!widget) return;
-      updateWidget(widgetId, { todoItems: widget.todoItems.filter((item) => item.id !== todoId) });
-    },
-    [widgets, updateWidget]
-  );
-
-  const handleClearCompleted = useCallback(
-    (widgetId: string) => {
-      const widget = widgets.find((w) => w.id === widgetId);
-      if (!widget) return;
-      updateWidget(widgetId, { todoItems: widget.todoItems.filter((item) => !item.completed) });
-    },
-    [widgets, updateWidget]
-  );
-
-  // ── Note handlers ──────────────────────────────────────────────────────────
-  const handleAddNote = useCallback(
-    (widgetId: string) => {
-      const widget = widgets.find((w) => w.id === widgetId);
-      if (!widget) return;
-      updateWidget(widgetId, { notes: [...widget.notes, { id: crypto.randomUUID(), title: "Untitled", content: "", createdAt: Date.now(), updatedAt: Date.now() }] });
-    },
-    [widgets, updateWidget]
-  );
-
-  const handleUpdateNote = useCallback(
-    (widgetId: string, noteId: string, changes: { title?: string; content?: string }) => {
-      const widget = widgets.find((w) => w.id === widgetId);
-      if (!widget) return;
-      updateWidget(widgetId, { notes: widget.notes.map((note) => note.id === noteId ? { ...note, ...changes, updatedAt: Date.now() } : note) });
-    },
-    [widgets, updateWidget]
-  );
-
-  const handleDeleteNote = useCallback(
-    (widgetId: string, noteId: string) => {
-      const widget = widgets.find((w) => w.id === widgetId);
-      if (!widget) return;
-      updateWidget(widgetId, { notes: widget.notes.filter((note) => note.id !== noteId) });
-    },
-    [widgets, updateWidget]
-  );
-
-  const handleUpdateWidgetData = useCallback(
-    (widgetId: string, data: Record<string, unknown>) => { updateWidget(widgetId, { data }); },
-    [updateWidget]
-  );
-
-  // ── Memoized callback objects ──────────────────────────────────────────────
-  const widgetCallbacks = useMemo<WidgetCallbacks>(
-    () => ({ onPositionChange: updateWidgetPosition, onSizeChange: updateWidgetSize, onClockConfigChange: handleClockConfigChange }),
-    [updateWidgetPosition, updateWidgetSize, handleClockConfigChange]
-  );
-
-  const contentCallbacks = useMemo<ContentCallbacks>(
-    () => ({
-      onAddTodo: handleAddTodo, onToggleTodo: handleToggleTodo, onDeleteTodo: handleDeleteTodo,
-      onClearCompleted: handleClearCompleted, onAddNote: handleAddNote, onUpdateNote: handleUpdateNote,
-      onDeleteNote: handleDeleteNote, onUpdateWidgetData: handleUpdateWidgetData,
-    }),
-    [handleAddTodo, handleToggleTodo, handleDeleteTodo, handleClearCompleted, handleAddNote, handleUpdateNote, handleDeleteNote, handleUpdateWidgetData]
-  );
-
   const addableEntries = useMemo(() => getAddableEntries(), []);
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -633,15 +564,6 @@ const App: React.FC = () => {
           {isFocusMode ? "◎" : "○"}
         </button>
       )}
-      <DesktopCanvas
-        widgets={displayWidgets}
-        widgetCallbacks={widgetCallbacks}
-        contentCallbacks={contentCallbacks}
-        isFocusMode={isFocusMode}
-        onSetActiveStackTab={handleSetActiveStackTab}
-        onUpdateStackPosition={handleUpdateStackPosition}
-        onUpdateStackSize={handleUpdateStackSize}
-      />
       <SettingsPanel
         isOpen={isSettingsOpen}
         widgets={widgets}
@@ -651,7 +573,7 @@ const App: React.FC = () => {
         autostart={autostart}
         alwaysOnTop={alwaysOnTop}
         addableEntries={addableEntries}
-        onClose={() => setIsSettingsOpen(false)}
+        onClose={handleCloseSettings}
         onToggleTheme={handleToggleTheme}
         onToggleVisible={handleToggleVisible}
         onToggleLock={handleToggleLock}
@@ -671,6 +593,7 @@ const App: React.FC = () => {
         onCreateWidgetStack={handleCreateWidgetStack}
         onAddWidgetToStack={handleAddWidgetToStack}
         onRemoveWidgetFromStack={handleRemoveWidgetFromStack}
+        onSetClickThrough={handleSetClickThrough}
       />
       <Toast message={toastMessage?.msg ?? ""} onDismiss={handleToastDismiss} />
       <OnboardingOverlay isVisible={showOnboarding} onDismiss={handleDismissOnboarding} />

@@ -187,8 +187,11 @@ function migrateWidget(raw: Record<string, unknown>): Widget {
     notes:     rawNotes.map((note) => migrateNote(note as Record<string, unknown>)),
     opacity:   rawOpacity,
     data:      safeData,
-    condition: safeCondition,
-    stack:     safeStack,
+    condition:            safeCondition,
+    stack:                safeStack,
+    alwaysOnTopPerWidget: typeof raw.alwaysOnTopPerWidget === "boolean" ? raw.alwaysOnTopPerWidget : false,
+    clickThrough:         typeof raw.clickThrough         === "boolean" ? raw.clickThrough         : false,
+    monitorName:          typeof raw.monitorName          === "string"  ? raw.monitorName          : null,
   };
 }
 

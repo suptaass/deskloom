@@ -8,6 +8,8 @@ import {
   WIDGET_REGISTRY,
 } from "../registry/widgetRegistry";
 import { DEFAULT_CONDITION } from "../utils/condition";
+import { useLicenseStore } from "../store/licenseStore";
+import LicenseModal from "./LicenseModal";
 
 const DEFAULT_WIDGET_IDS = ["clock-1", "todo-1", "notes-1"];
 
@@ -47,6 +49,7 @@ interface SettingsPanelProps {
   onCreateWidgetStack: (widgetId: string) => void;
   onAddWidgetToStack: (widgetId: string, targetStackId: string) => void;
   onRemoveWidgetFromStack: (widgetId: string) => void;
+  onSetClickThrough: (widgetId: string, value: boolean) => void;
 }
 
 function getDisplayLabel(widget: Widget): string {
@@ -87,12 +90,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onAddWidgetInstance, onRemoveWidget, onSetAlwaysOnTop, onSetAutostart,
   onExportLayout, onImportLayout, onSetWidgetCondition, onSetWidgetShortcut,
   onCreateWidgetStack, onAddWidgetToStack, onRemoveWidgetFromStack,
+  onSetClickThrough,
 }) => {
   const [renameValues,      setRenameValues]      = useState<Record<string, string>>({});
   const [showResetConfirm,  setShowResetConfirm]  = useState(false);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [expandedCondition, setExpandedCondition] = useState<string | null>(null);
   const [stackTargets,      setStackTargets]      = useState<Record<string, string>>({});
+  const [showLicenseModal,  setShowLicenseModal]  = useState(false);
+
+  const isPremium = useLicenseStore((s) => s.isPremium);
+  const email     = useLicenseStore((s) => s.email);
 
   // recordingId: widget ที่กำลัง "รอรับ keypress" สำหรับ shortcut
   const [recordingId, setRecordingId] = useState<string | null>(null);
@@ -264,13 +272,55 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   return (
     <div style={panelStyle}>
+      {showLicenseModal && <LicenseModal onClose={() => setShowLicenseModal(false)} />}
+
       {/* Header */}
-      <div style={{ ...sectionStyle, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 18px 16px" }}>
+      <div data-tauri-drag-region style={{ ...sectionStyle, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 18px 16px" }}>
         <div>
           <p style={{ fontSize: "15px", fontWeight: "700" }}>Settings</p>
           <p style={subTextStyle}>Ctrl+, to toggle</p>
         </div>
         <button style={{ ...baseBtnStyle, width: "30px", height: "30px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px" }} onClick={onClose}>✕</button>
+      </div>
+
+      {/* License / Premium */}
+      <div style={{ ...sectionStyle, padding: "12px 18px" }}>
+        {isPremium ? (
+          <div
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              background: "color-mix(in srgb, #4CAF50 10%, transparent)",
+              border: "1px solid color-mix(in srgb, #4CAF50 25%, transparent)",
+              borderRadius: "8px", padding: "8px 12px", cursor: "pointer",
+            }}
+            onClick={() => setShowLicenseModal(true)}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "14px" }}>✓</span>
+              <div>
+                <p style={{ fontSize: "12px", fontWeight: "600", color: "#4CAF50" }}>Premium Active</p>
+                {email && <p style={{ fontSize: "10px", color: "var(--text-secondary)" }}>{email}</p>}
+              </div>
+            </div>
+            <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>Manage →</span>
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              background: "color-mix(in srgb, var(--accent-color) 8%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--accent-color) 25%, transparent)",
+              borderRadius: "8px", padding: "8px 12px", cursor: "pointer",
+            }}
+            onClick={() => setShowLicenseModal(true)}
+          >
+            <div>
+              <p style={{ fontSize: "12px", fontWeight: "600", color: "var(--accent-color)" }}>Upgrade to Premium</p>
+              <p style={{ fontSize: "10px", color: "var(--text-secondary)" }}>Pomodoro · Habit Tracker · More</p>
+            </div>
+            <span style={{ fontSize: "11px", color: "var(--accent-color)", fontWeight: "600" }}>$9 →</span>
+          </div>
+        )}
       </div>
 
       {/* Appearance */}
@@ -322,11 +372,28 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
       <div style={sectionStyle}>
         <p style={sectionTitleStyle}>Add Widgets</p>
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-          {addableEntries.map((entry) => (
-            <button key={entry.type} style={{ ...baseBtnStyle, flex: 1, fontSize: "11px" }} onClick={() => onAddWidgetInstance(entry.type)}>
-              + {entry.displayName}
-            </button>
-          ))}
+          {addableEntries.map((entry) => {
+            const locked = entry.isPremium && !isPremium;
+            return (
+              <button
+                key={entry.type}
+                style={{
+                  ...baseBtnStyle,
+                  flex: 1,
+                  fontSize: "11px",
+                  opacity: locked ? 0.65 : 1,
+                  borderColor: locked ? "color-mix(in srgb, var(--accent-color) 35%, var(--btn-border))" : "var(--btn-border)",
+                }}
+                onClick={() => {
+                  if (locked) { setShowLicenseModal(true); return; }
+                  onAddWidgetInstance(entry.type);
+                }}
+                title={locked ? "Premium feature — click to upgrade" : undefined}
+              >
+                {locked ? "🔒" : "+"} {entry.displayName}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -385,6 +452,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 </button>
                 <button style={{ ...baseBtnStyle, flex: 1, fontSize: "11px", padding: "4px 0", borderColor: widget.isLocked ? "var(--accent-blue-border)" : "var(--btn-border)", color: widget.isLocked ? "var(--accent-blue)" : "var(--btn-text)" }} onClick={() => onToggleLock(widget.id)}>
                   {widget.isLocked ? "🔒 Locked" : "🔓 Free"}
+                </button>
+              </div>
+
+              {/* Click-through */}
+              <div style={{ marginBottom: "8px" }}>
+                <button
+                  style={{ ...baseBtnStyle, width: "100%", fontSize: "11px", padding: "4px 0", borderColor: widget.clickThrough ? "var(--accent-color)" : "var(--btn-border)", color: widget.clickThrough ? "var(--accent-color)" : "var(--btn-text)", background: widget.clickThrough ? "color-mix(in srgb, var(--accent-color) 10%, transparent)" : "var(--btn-bg)" }}
+                  onClick={() => onSetClickThrough(widget.id, !widget.clickThrough)}
+                >
+                  {widget.clickThrough ? "🖱 Click-through: On" : "🖱 Click-through: Off"}
                 </button>
               </div>
 
