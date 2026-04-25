@@ -16,19 +16,19 @@ interface Hint {
 
 const HINTS: Hint[] = [
   {
-    icon:  "✋",
-    title: "Drag widgets freely",
-    desc:  "Click and drag any widget to move it anywhere on screen.",
+    icon:  "🖥️",
+    title: "DeskLoom lives in your tray",
+    desc:  "Look for the DeskLoom icon in the system tray (bottom-right corner). Click it to open Settings anytime.",
   },
   {
-    icon:  "⚙️",
-    title: "Open Settings",
-    desc:  "Press Ctrl+, to open Settings — change theme, colors, and manage widgets.",
+    icon:  "✋",
+    title: "Drag widgets freely",
+    desc:  "Click and drag any widget to reposition it anywhere on your screen.",
   },
   {
     icon:  "🔲",
-    title: "Resize & lock",
-    desc:  "Drag the edges to resize. Lock a widget in Settings to prevent accidental moves.",
+    title: "Resize & customize",
+    desc:  "Drag widget edges to resize. In Settings you can lock, hide, or adjust each widget individually.",
   },
 ];
 

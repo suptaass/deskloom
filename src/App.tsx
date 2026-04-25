@@ -120,7 +120,11 @@ const App: React.FC = () => {
       let saved = null;
       try {
         saved = await loadState();
-        if (saved === null) { setIsFirstRun(true); setShowOnboarding(true); }
+        if (saved === null) {
+          setIsFirstRun(true);
+          setShowOnboarding(true);
+          try { await getCurrentWindow().show(); } catch { /* ignore */ }
+        }
       } catch (e) {
         console.error("[App] loadState failed:", e);
         setToastMessage({ msg: "Save file is corrupted. Starting with default widgets.", id: Date.now() });
@@ -282,7 +286,12 @@ const App: React.FC = () => {
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleToastDismiss      = useCallback(() => setToastMessage(null), []);
-  const handleDismissOnboarding = useCallback(() => setShowOnboarding(false), []);
+  const handleDismissOnboarding = useCallback(async () => {
+    setShowOnboarding(false);
+    if (!isSettingsOpen) {
+      try { await getCurrentWindow().hide(); } catch { /* ignore */ }
+    }
+  }, [isSettingsOpen]);
   const handleToggleSettings    = useCallback(() => setIsSettingsOpen((prev) => !prev), []);
 
   const handleCloseSettings = useCallback(async () => {

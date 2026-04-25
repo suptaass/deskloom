@@ -53,6 +53,14 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "category": "Utility",
+    "shortDescription": "Desktop widget system for Windows",
+    "longDescription": "DeskLoom is a desktop widget app for Windows. Place clocks, notes, habits, weather, and more anywhere on your desktop.",
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      }
+    }
   }
 }

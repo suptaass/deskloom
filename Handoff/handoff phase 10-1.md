@@ -55,8 +55,8 @@
 
 ---
 
-# 🧠 HANDOFF DOCUMENT — DeskLoom v0.5 Phase 10-1
-## ส่งต่อให้ Phase 10 (และ session ถัดๆ ไป)
+# 🧠 HANDOFF DOCUMENT — DeskLoom v0.5 Phase 10-3
+## ส่งต่อให้ Phase 10-3 (Weather API Key UI)
 
 ## โปรเจกต์
 DeskLoom — Desktop Widget App (Windows)
@@ -65,7 +65,7 @@ Working directory: e:\Project\deskloom
 
 ---
 
-## ✅ สิ่งที่เสร็จแล้ว (Phase 9 + License System)
+## ✅ สิ่งที่เสร็จแล้ว
 
 ### Phase 9 (9-1 ถึง 9-6) ✅
 - 9-1: Per-widget OS window แยกแต่ละ widget
@@ -84,48 +84,17 @@ Working directory: e:\Project\deskloom
 
 **git tag:** `v0.5.0` ✅ (commit 71d995a)
 
----
+### Phase 10-1: Tauri Bundle / Installer ✅
+- `src-tauri/tauri.conf.json` — เพิ่ม `category`, `shortDescription`, `longDescription`, `windows.webviewInstallMode`
+- Build ผ่าน: ได้ `DeskLoom_0.5.0_x64_en-US.msi` และ `DeskLoom_0.5.0_x64-setup.exe`
 
-## 🔴 สิ่งที่ต้องทำใน Phase 10: Installer + Onboarding + Weather API
-
-### เป้าหมาย Phase 10
-เตรียมแอปสำหรับ distribution จริง — ให้ user ที่ไม่รู้จัก DeskLoom เลย ติดตั้งและใช้งานได้ทันที
-
----
-
-### 10-1: Tauri Bundle / Installer Configuration
-**ทำไม:** แอปที่ใช้งานจริงต้องมี installer ไม่ใช่แค่รัน dev server
-
-สิ่งที่ต้องทำ:
-- ตรวจสอบ bundle metadata ใน `src-tauri/tauri.conf.json`:
-  - `productName`, `identifier` (`com.deskloom.app`), `version`
-- ตั้งค่า icon path ให้ถูกต้อง (ต้องมี `icons/` folder)
-- รัน `pnpm tauri build` → ได้ `.msi` ใน `src-tauri/target/release/bundle/msi/`
-- Test install จริงบน Windows
-- สอน: bundle config, code signing (optional), installer structure
-
-**ไฟล์ที่เกี่ยวข้อง:**
-- `src-tauri/tauri.conf.json` (bundle section)
-- `src-tauri/Cargo.toml` (version)
+### Phase 10-2: Onboarding Flow ✅
+- `src/App.tsx` — first run → `getCurrentWindow().show()` + `handleDismissOnboarding` hide window ถ้า settings ไม่ได้เปิด
+- `src/components/OnboardingOverlay.tsx` — HINTS ใหม่: tray icon เป็น hint แรก, ลบ Ctrl+, ที่ล้าสมัย
 
 ---
 
-### 10-2: Onboarding Flow — Tray Icon Guidance
-**ทำไม:** Main window ซ่อนตั้งแต่แรก → user ใหม่ที่เพิ่ง install จะงงว่าแอปอยู่ที่ไหน
-
-สิ่งที่ต้องทำ:
-- ตรวจสอบ `OnboardingOverlay.tsx` ปัจจุบัน
-- เพิ่ม step: แนะนำ tray icon location (ภาพหรือ animated indicator)
-- เพิ่ม `hasSeenOnboarding` flag ใน appStore + storage migration guard
-- เงื่อนไข: แสดง onboarding เฉพาะ first run เท่านั้น
-- สอน: first-run detection pattern, conditional rendering based on store flag
-
-**ไฟล์ที่เกี่ยวข้อง:**
-- `src/components/OnboardingOverlay.tsx`
-- `src/store/appStore.ts`
-- `src/utils/storage.ts` (migration guard)
-
----
+## 🔴 สิ่งที่ต้องทำต่อไป: Phase 10-3
 
 ### 10-3: Weather API Key UI
 **ทำไม:** Weather widget ต้องการ OpenWeatherMap API key ที่ user ต้องกรอกเอง
