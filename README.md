@@ -24,8 +24,8 @@
 | 📝 **Notes widget** | Create, edit, delete notes |
 | ⏱️ **Pomodoro** | Work/break timer — Premium |
 | 📋 **Habit Tracker** | Daily habit streaks — Premium |
-| 🔗 **Quick Links** | One-click URL launcher — Premium |
-| 🌤️ **Weather** | Current weather via OpenWeatherMap — Premium |
+| 🔗 **Quick Links** | One-click URL launcher |
+| 🌤️ **Weather** | Current weather via Open-Meteo (no API key needed) |
 | 🖱️ **Drag & resize** | Move and resize all widgets freely |
 | 🖥️ **Per-widget OS window** | Each widget is an independent system window |
 | 🔢 **Multiple instances** | Add as many widget instances as you need |
@@ -46,9 +46,21 @@
 
 ## 📸 Screenshots
 
-| Widget Close-up | With Settings Panel |
-|-----------|------------|
-| ![Dark](docs/screenshot-dark.png) | ![Light](docs/screenshot-light.png) |
+### Desktop
+
+| Light theme | Dark theme |
+|---|---|
+| ![Light](docs/Screenshot-Light.png) | ![Dark](docs/Screenshort-Dark.png) |
+
+### Settings & Customization
+
+| Settings (Light) | Settings (Dark) | Accent Color |
+|---|---|---|
+| ![Settings Light](docs/Setting-Light.png) | ![Settings Dark](docs/Setting-Dark.png) | ![Accent](<docs/Change-Color accent.png>) |
+
+### First-run Welcome
+
+![Welcome](docs/Welcome.png)
 
 ---
 
@@ -64,7 +76,7 @@
 ### Option A — Download installer *(recommended)*
 
 1. Download [**DeskLoom_0.6.0_x64-setup.exe**](https://github.com/suptaass/deskloom/releases/download/v0.6.0/DeskLoom_0.6.0_x64-setup.exe)
-2. Run the installer
+2. Run the installer — if Windows shows a SmartScreen warning, click **More info → Run anyway**
 3. DeskLoom starts automatically — look for the icon in the **system tray** (bottom-right corner)
 4. Click the tray icon → open Settings
 
@@ -110,9 +122,9 @@ No account required. No internet connection needed (except Weather widget and li
 
 ## 🔑 Premium
 
-Premium unlocks: **Pomodoro · Habit Tracker · Quick Links · Weather widget**
+Premium unlocks: **Pomodoro · Habit Tracker**
 
-Purchase a license key on [Gumroad](https://suptaass.gumroad.com) → enter it in Settings → Activate.
+<!-- Purchase link will be added when Gumroad product is live -->
 
 ---
 

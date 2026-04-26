@@ -1,6 +1,6 @@
 // src/components/SettingsPanel.tsx
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Widget, WidgetCondition } from "../types/widget";
 import {
   WidgetType,
@@ -50,8 +50,6 @@ interface SettingsPanelProps {
   onAddWidgetToStack: (widgetId: string, targetStackId: string) => void;
   onRemoveWidgetFromStack: (widgetId: string) => void;
   onSetClickThrough: (widgetId: string, value: boolean) => void;
-  weatherApiKey: string;
-  onWeatherApiKeyChange: (key: string) => void;
 }
 
 function getDisplayLabel(widget: Widget): string {
@@ -93,7 +91,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onExportLayout, onImportLayout, onSetWidgetCondition, onSetWidgetShortcut,
   onCreateWidgetStack, onAddWidgetToStack, onRemoveWidgetFromStack,
   onSetClickThrough,
-  weatherApiKey, onWeatherApiKeyChange,
 }) => {
   const [renameValues,      setRenameValues]      = useState<Record<string, string>>({});
   const [showResetConfirm,  setShowResetConfirm]  = useState(false);
@@ -101,7 +98,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [expandedCondition, setExpandedCondition] = useState<string | null>(null);
   const [stackTargets,      setStackTargets]      = useState<Record<string, string>>({});
   const [showLicenseModal,  setShowLicenseModal]  = useState(false);
-  const [showApiKey,        setShowApiKey]        = useState(false);
 
   const isPremium = useLicenseStore((s) => s.isPremium);
   const email     = useLicenseStore((s) => s.email);
@@ -136,6 +132,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     window.addEventListener("keydown", handleKeyDown, true); // capture phase
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [recordingId, onSetWidgetShortcut]);
+
+  const panelRef = useRef<HTMLDivElement>(null);
 
   // ── Condition helpers ──────────────────────────────────────────────────────
   const handleToggleConditionEnabled = useCallback(
@@ -213,15 +211,39 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   }));
 
   // ── Styles ─────────────────────────────────────────────────────────────────
-  const panelStyle: React.CSSProperties = {
-    position: "fixed", top: 0, right: 0,
-    width: "300px", height: "100vh",
-    background: "var(--widget-bg)",
-    borderLeft: "1px solid var(--widget-border)",
-    backdropFilter: "blur(16px)",
+  const backdropStyle: React.CSSProperties = {
+    position: "fixed", inset: 0,
     zIndex: 9000,
+    background: "rgba(0,0,0,0.25)",
+    backdropFilter: "blur(2px)",
+  };
+
+  const panelStyle: React.CSSProperties = {
+    position: "fixed",
+    left: "50%", top: "50%", transform: "translate(-50%, -50%)",
+    width: "340px",
+    maxHeight: "85vh",
+    background: "var(--widget-bg)",
+    border: "1px solid var(--widget-border)",
+    borderRadius: "14px",
+    boxShadow: "0 24px 60px rgba(0,0,0,0.22), 0 4px 16px rgba(0,0,0,0.12)",
+    backdropFilter: "blur(16px)",
+    zIndex: 9001,
     display: "flex", flexDirection: "column",
-    color: "var(--text-primary)", overflowY: "auto",
+    color: "var(--text-primary)",
+    overflow: "hidden",
+  };
+
+  const titleBarStyle: React.CSSProperties = {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    padding: "12px 16px",
+    borderBottom: "1px solid var(--divider)",
+    flexShrink: 0,
+  };
+
+  const scrollContentStyle: React.CSSProperties = {
+    overflowY: "auto",
+    flex: 1,
   };
 
   const sectionStyle: React.CSSProperties = {
@@ -275,17 +297,20 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   };
 
   return (
-    <div style={panelStyle}>
+    <div style={backdropStyle}>
+    <div ref={panelRef} style={panelStyle}>
       {showLicenseModal && <LicenseModal onClose={() => setShowLicenseModal(false)} />}
 
-      {/* Header */}
-      <div data-tauri-drag-region style={{ ...sectionStyle, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 18px 16px" }}>
-        <div>
-          <p style={{ fontSize: "15px", fontWeight: "700" }}>Settings</p>
-          <p style={subTextStyle}>Ctrl+, to toggle</p>
-        </div>
-        <button style={{ ...baseBtnStyle, width: "30px", height: "30px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px" }} onClick={onClose}>✕</button>
+      {/* Title bar */}
+      <div style={titleBarStyle}>
+        <p style={{ fontSize: "14px", fontWeight: "700", letterSpacing: "0.2px" }}>⚙ Settings</p>
+        <button
+          style={{ ...baseBtnStyle, width: "28px", height: "28px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px" }}
+          onClick={onClose}
+        >✕</button>
       </div>
+
+      <div style={scrollContentStyle}>
 
       {/* License / Premium */}
       <div style={{ ...sectionStyle, padding: "12px 18px" }}>
@@ -369,37 +394,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <div style={{ ...rowStyle, marginBottom: 0 }}>
           <div><p style={{ fontSize: "13px" }}>Start with Windows</p><p style={subTextStyle}>Launch on login</p></div>
           <button style={toggleBtnStyle(autostart)} onClick={() => onSetAutostart(!autostart)}>{autostart ? "On" : "Off"}</button>
-        </div>
-      </div>
-
-      {/* Integrations */}
-      <div style={sectionStyle}>
-        <p style={sectionTitleStyle}>Integrations</p>
-        <p style={{ ...subTextStyle, marginBottom: "8px" }}>OpenWeatherMap API Key</p>
-        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-          <input
-            type={showApiKey ? "text" : "password"}
-            value={weatherApiKey}
-            onChange={(e) => onWeatherApiKeyChange(e.target.value)}
-            placeholder="Paste your API key here"
-            style={{
-              flex: 1,
-              padding: "5px 8px",
-              borderRadius: "6px",
-              border: "1px solid var(--btn-border)",
-              background: "var(--btn-bg)",
-              color: "var(--text-primary)",
-              fontSize: "12px",
-              outline: "none",
-              fontFamily: "inherit",
-            }}
-          />
-          <button
-            style={{ ...baseBtnStyle, padding: "4px 8px", fontSize: "11px" }}
-            onClick={() => setShowApiKey((v) => !v)}
-          >
-            {showApiKey ? "Hide" : "Show"}
-          </button>
         </div>
       </div>
 
@@ -735,6 +729,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </div>
         )}
       </div>
+
+      </div>
+    </div>
     </div>
   );
 };

@@ -86,7 +86,6 @@ const App: React.FC = () => {
   const resetLayout          = useAppStore((state) => state.resetLayout);
   const toggleFocusMode      = useAppStore((state) => state.toggleFocusMode);
   const weatherApiKey        = useAppStore((state) => state.weatherApiKey);
-  const setWeatherApiKey     = useAppStore((state) => state.setWeatherApiKey);
 
   const loadLicenseFromDisk = useLicenseStore((s) => s.loadFromDisk);
 
@@ -605,8 +604,6 @@ const App: React.FC = () => {
         onAddWidgetToStack={handleAddWidgetToStack}
         onRemoveWidgetFromStack={handleRemoveWidgetFromStack}
         onSetClickThrough={handleSetClickThrough}
-        weatherApiKey={weatherApiKey}
-        onWeatherApiKeyChange={setWeatherApiKey}
       />
       <Toast message={toastMessage?.msg ?? ""} onDismiss={handleToastDismiss} />
       <OnboardingOverlay isVisible={showOnboarding} onDismiss={handleDismissOnboarding} />
