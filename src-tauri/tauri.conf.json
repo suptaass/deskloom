@@ -13,7 +13,7 @@
       {
         "label": "main",
         "title": "DeskLoom",
-        "width": 320,
+        "width": 360,
         "height": 750,
         "resizable": false,
         "maximizable": false,

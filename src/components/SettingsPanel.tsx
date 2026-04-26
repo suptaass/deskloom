@@ -303,7 +303,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
       {/* Title bar */}
       <div style={titleBarStyle}>
-        <p style={{ fontSize: "14px", fontWeight: "700", letterSpacing: "0.2px" }}>⚙ Settings</p>
+        <div
+          data-tauri-drag-region
+          style={{ flex: 1, display: "flex", alignItems: "center", cursor: "move", userSelect: "none" }}
+        >
+          <p style={{ fontSize: "14px", fontWeight: "700", letterSpacing: "0.2px", pointerEvents: "none" }}>⚙ Settings</p>
+        </div>
         <button
           style={{ ...baseBtnStyle, width: "28px", height: "28px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px" }}
           onClick={onClose}

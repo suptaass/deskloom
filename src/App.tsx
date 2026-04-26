@@ -562,17 +562,52 @@ const App: React.FC = () => {
       } as React.CSSProperties}
     >
       {!isSettingsOpen && (
-        <button className="gear-button" onClick={handleToggleSettings} title="Settings (Ctrl+,)" aria-label="Open Settings">⚙</button>
-      )}
-      {!isSettingsOpen && (
-        <button
-          className={`focus-btn${isFocusMode ? " focus-btn--active" : ""}`}
-          onClick={toggleFocusMode}
-          title={isFocusMode ? "Exit Focus Mode (Ctrl+F)" : "Focus Mode (Ctrl+F)"}
-          aria-label={isFocusMode ? "Exit Focus Mode" : "Enter Focus Mode"}
-        >
-          {isFocusMode ? "◎" : "○"}
-        </button>
+        <div style={{
+          position: "fixed", inset: 0,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <div style={{
+            background: "var(--widget-bg)",
+            border: "1px solid var(--widget-border)",
+            borderRadius: "14px",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+            backdropFilter: "blur(16px)",
+            overflow: "hidden",
+          }}>
+            <div
+              data-tauri-drag-region
+              style={{
+                padding: "10px 28px",
+                borderBottom: "1px solid var(--divider)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "move",
+                userSelect: "none",
+              }}
+            >
+              <span style={{
+                fontSize: "11px", fontWeight: "600",
+                letterSpacing: "1.4px", textTransform: "uppercase",
+                color: "var(--text-secondary)",
+                pointerEvents: "none",
+              }}>DeskLoom</span>
+            </div>
+            <div style={{
+              padding: "14px 20px",
+              display: "flex", gap: "10px",
+              justifyContent: "center", alignItems: "center",
+            }}>
+              <button className="gear-button" onClick={handleToggleSettings} title="Settings (Ctrl+,)" aria-label="Open Settings">⚙</button>
+              <button
+                className={`focus-btn${isFocusMode ? " focus-btn--active" : ""}`}
+                onClick={toggleFocusMode}
+                title={isFocusMode ? "Exit Focus Mode (Ctrl+F)" : "Focus Mode (Ctrl+F)"}
+                aria-label={isFocusMode ? "Exit Focus Mode" : "Enter Focus Mode"}
+              >
+                {isFocusMode ? "◎" : "○"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       <SettingsPanel
         isOpen={isSettingsOpen}

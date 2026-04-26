@@ -6,9 +6,14 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { emit, listen } from "@tauri-apps/api/event";
 import { Widget } from "../types/widget";
-import ClockWidget from "./widgets/ClockWidget";
-import TodoWidget from "./widgets/TodoWidget";
-import NotesWidget from "./widgets/NotesWidget";
+import ClockWidget        from "./widgets/ClockWidget";
+import TodoWidget         from "./widgets/TodoWidget";
+import NotesWidget        from "./widgets/NotesWidget";
+import QuickLinksWidget   from "./widgets/QuickLinksWidget";
+import CalendarWidget     from "./widgets/CalendarWidget";
+import WeatherWidget      from "./widgets/WeatherWidget";
+import PomodoroWidget     from "./widgets/PomodoroWidget";
+import HabitTrackerWidget from "./widgets/HabitTrackerWidget";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -166,7 +171,12 @@ const WidgetWindow: React.FC<WidgetWindowProps> = ({ widgetId }) => {
     document.addEventListener("mouseup",   handleMouseUp);
   }, [widget, widgetId]);
 
-  // ── Render content (Phase 9-2: Clock + Todo + Notes) ─────────────────
+  // ── Data update callback — ส่ง widget.data ใหม่กลับไป controller ───────
+  const handleUpdateData = useCallback((widgetId: string, data: Record<string, unknown>) => {
+    void emit("widget:data-change", { id: widgetId, changes: { data } });
+  }, []);
+
+  // ── Render content ─────────────────────────────────────────────────────
   const renderContent = () => {
     if (!widget) return null;
     switch (widget.type) {
@@ -262,10 +272,28 @@ const WidgetWindow: React.FC<WidgetWindowProps> = ({ widgetId }) => {
             }}
           />
         );
+      case "quicklinks":
+        return (
+          <QuickLinksWidget widget={widget} onUpdateData={handleUpdateData} />
+        );
+      case "calendar":
+        return <CalendarWidget widget={widget} />;
+      case "weather":
+        return (
+          <WeatherWidget widget={widget} onUpdateData={handleUpdateData} />
+        );
+      case "pomodoro":
+        return (
+          <PomodoroWidget widget={widget} onUpdateData={handleUpdateData} />
+        );
+      case "habittracker":
+        return (
+          <HabitTrackerWidget widget={widget} onUpdateData={handleUpdateData} />
+        );
       default:
         return (
           <div style={{ color: "var(--text-primary)", padding: "12px", fontSize: "12px" }}>
-            Widget type "{widget.type}" — not yet supported
+            Unknown widget type: {widget.type}
           </div>
         );
     }

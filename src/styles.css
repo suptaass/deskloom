@@ -142,10 +142,6 @@ textarea:focus {
 
 /* ===== GEAR BUTTON ===== */
 .gear-button {
-  position: fixed;
-  top: 12px;
-  right: 12px;
-  z-index: 9999;
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -185,10 +181,6 @@ textarea:focus {
 
 /* ===== FOCUS MODE BUTTON ===== */
 .focus-btn {
-  position: fixed;
-  top: 12px;
-  right: 56px; /* ห่างจาก gear-button (36px width + 8px gap + 12px margin) */
-  z-index: 9999;
   width: 36px;
   height: 36px;
   border-radius: 50%;
