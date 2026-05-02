@@ -203,7 +203,7 @@ function parseAppState(parsed: Record<string, unknown>): AppState {
   );
 
   const theme: "dark" | "light" =
-    parsed.theme === "light" ? "light" : "dark";
+    parsed.theme === "dark" ? "dark" : "light";
 
   const accentColor: string =
     typeof parsed.accentColor === "string" && parsed.accentColor.startsWith("#")

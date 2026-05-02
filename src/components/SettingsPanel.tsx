@@ -600,8 +600,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     <p style={{ fontSize: "11px", color: "var(--accent-color)", fontWeight: "700" }}>
                       Press shortcut key…
                     </p>
-                    <p style={{ fontSize: "10px", color: "var(--text-secondary)", marginTop: "2px" }}>
-                      Esc to cancel
+                    <p style={{ fontSize: "10px", color: "var(--text-secondary)", marginTop: "3px" }}>
+                      Ctrl / Alt / Shift + key  •  Esc to cancel
                     </p>
                   </div>
                 ) : (

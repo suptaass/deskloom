@@ -5,11 +5,24 @@ import { emitTo, listen } from "@tauri-apps/api/event";
 import { Widget } from "../types/widget";
 import type { WidgetStatePayload } from "../components/WidgetWindow";
 
+function getDisplayLabel(widget: Widget): string {
+  if (widget.type === "clock") {
+    try {
+      const parsed = JSON.parse(widget.label) as { name?: string };
+      return parsed.name ?? widget.label;
+    } catch {
+      return widget.label;
+    }
+  }
+  return widget.label;
+}
+
 interface SyncCallbacks {
   onPositionChange: (id: string, pos: { x: number; y: number }) => void;
   onSizeChange: (id: string, size: { width: number; height: number }) => void;
   onDataChange: (id: string, changes: Partial<Widget>) => void;
   onMonitorChange: (id: string, name: string | null) => void;
+  onStackSwitch: (stackId: string, targetWidgetId: string) => void;
 }
 
 export function useWidgetWindowSync(
@@ -28,18 +41,31 @@ export function useWidgetWindowSync(
   const callbacksRef        = useRef(callbacks);
   const prevAlwaysOnTopRef  = useRef<Map<string, boolean>>(new Map());
   const prevClickThroughRef = useRef<Map<string, boolean>>(new Map());
+  // ── Visibility tracking — ตรวจ isVisible เปลี่ยนแล้ว show/hide window ────
+  // prevVisibilityRef จะ undefined ตอน push ครั้งแรก (WidgetWindow handle show เอง)
+  // หลังจากนั้น เปรียบเทียบค่าก่อนหน้าและ call win.hide()/win.show() เมื่อเปลี่ยน
+  const prevVisibilityRef   = useRef<Map<string, boolean>>(new Map());
 
   useEffect(() => { widgetsRef.current   = widgets;   }, [widgets]);
   useEffect(() => { callbacksRef.current = callbacks; }, [callbacks]);
 
   const pushState = useCallback(async (widget: Widget) => {
     const label = `widget-${widget.id}`;
+
+    // รวม widget อื่นๆ ใน stack เดียวกัน เพื่อให้ WidgetWindow แสดง tab bar
+    const stackSiblings = widget.stack.stackId
+      ? widgetsRef.current
+          .filter((w) => w.stack.stackId === widget.stack.stackId && w.id !== widget.id)
+          .map((w) => ({ id: w.id, label: getDisplayLabel(w), stackOrder: w.stack.stackOrder }))
+      : [];
+
     const payload: WidgetStatePayload = {
       widget,
       theme,
       accentColor,
       fontSize,
       globalAlwaysOnTop: alwaysOnTop,
+      stackSiblings,
     };
 
     try {
@@ -57,6 +83,16 @@ export function useWidgetWindowSync(
             await win.setAlwaysOnTop(newAlwaysOnTop);
             prevAlwaysOnTopRef.current.set(label, newAlwaysOnTop);
           }
+          // ── Visibility: hide/show window เมื่อ isVisible เปลี่ยน ─────────────
+          // ครั้งแรก (prevVisible = undefined): WidgetWindow handle show เอง
+          // ครั้งถัดไป: เราควบคุม — prevVisible เปลี่ยน → call win.hide()/win.show()
+          const prevVisible = prevVisibilityRef.current.get(label);
+          const nowVisible  = widget.isVisible;
+          if (prevVisible !== undefined && prevVisible !== nowVisible) {
+            if (nowVisible) await win.show();
+            else            await win.hide();
+          }
+          prevVisibilityRef.current.set(label, nowVisible);
         } catch {
           // ignore
         }
@@ -156,6 +192,7 @@ export function useWidgetWindowSync(
     windowRegistry.current.delete(label);
     prevAlwaysOnTopRef.current.delete(label);
     prevClickThroughRef.current.delete(label);
+    prevVisibilityRef.current.delete(label);
   }, []);
 
   useEffect(() => {
@@ -181,6 +218,10 @@ export function useWidgetWindowSync(
 
     unlisteners.push(listen<{ id: string; changes: Partial<Widget> }>("widget:data-change", (event) => {
       callbacksRef.current.onDataChange(event.payload.id, event.payload.changes);
+    }));
+
+    unlisteners.push(listen<{ stackId: string; targetWidgetId: string }>("widget:stack-switch", (event) => {
+      callbacksRef.current.onStackSwitch(event.payload.stackId, event.payload.targetWidgetId);
     }));
 
     return () => {

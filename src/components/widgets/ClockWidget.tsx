@@ -118,15 +118,15 @@ const ClockWidget: React.FC<ClockWidgetProps> = ({ widget, onConfigChange }) => 
       alignItems: "center", justifyContent: "center",
       color: "var(--text-primary)", padding: "16px",
       backdropFilter: "blur(8px)", gap: "6px",
-      fontSize: "var(--font-size-base)",
+      fontSize: "var(--font-size-base, 14px)",
     }}>
-      <p style={{ fontSize: "11px", opacity: 0.5, letterSpacing: "2px", textTransform: "uppercase" }}>
+      <p style={{ fontSize: "0.8em", opacity: 0.5, letterSpacing: "2px", textTransform: "uppercase" }}>
         {displayLabel}
       </p>
-      <p style={{ fontSize: "34px", fontWeight: "700", letterSpacing: "2px", fontFamily: "monospace", lineHeight: 1 }}>
+      <p style={{ fontSize: "2.4em", fontWeight: "700", letterSpacing: "2px", fontFamily: "monospace", lineHeight: 1 }}>
         {formatTime(now)}
       </p>
-      <p style={{ fontSize: "11px", opacity: 0.55, textAlign: "center" }}>
+      <p style={{ fontSize: "0.8em", opacity: 0.55, textAlign: "center" }}>
         {dateString}
       </p>
       <div style={{ display: "flex", gap: "6px", marginTop: "6px" }}>

@@ -23,6 +23,7 @@ export interface WidgetStatePayload {
   accentColor:       string;
   fontSize:          "small" | "medium" | "large";
   globalAlwaysOnTop: boolean;
+  stackSiblings:     { id: string; label: string; stackOrder: number }[];
 }
 
 interface WidgetWindowProps {
@@ -40,11 +41,22 @@ const MIN_HEIGHT = 100;
 
 // ── WidgetWindow ───────────────────────────────────────────────────────────
 
+function getTabLabel(widget: Widget): string {
+  if (widget.type === "clock") {
+    try {
+      const parsed = JSON.parse(widget.label) as { name?: string };
+      return parsed.name ?? widget.label;
+    } catch { return widget.label; }
+  }
+  return widget.label;
+}
+
 const WidgetWindow: React.FC<WidgetWindowProps> = ({ widgetId }) => {
-  const [widget,      setWidget]      = useState<Widget | null>(null);
-  const [theme,       setTheme]       = useState<"dark" | "light">("dark");
-  const [accentColor, setAccentColor] = useState("#6C8EF5");
-  const [fontSize,    setFontSize]    = useState<"small" | "medium" | "large">("medium");
+  const [widget,        setWidget]        = useState<Widget | null>(null);
+  const [theme,         setTheme]         = useState<"dark" | "light">("dark");
+  const [accentColor,   setAccentColor]   = useState("#6C8EF5");
+  const [fontSize,      setFontSize]      = useState<"small" | "medium" | "large">("medium");
+  const [stackSiblings, setStackSiblings] = useState<{ id: string; label: string; stackOrder: number }[]>([]);
 
   const scaleFactorRef  = useRef<number>(1);
   const containerRef    = useRef<HTMLDivElement>(null);
@@ -59,12 +71,13 @@ const WidgetWindow: React.FC<WidgetWindowProps> = ({ widgetId }) => {
 
     // รับ state จาก controller (push ทุกครั้งที่ widget เปลี่ยน)
     const unlistenState = listen<WidgetStatePayload>("widget:state", (event) => {
-      const { widget: w, theme: t, accentColor: ac, fontSize: fs } = event.payload;
+      const { widget: w, theme: t, accentColor: ac, fontSize: fs, stackSiblings: ss } = event.payload;
       if (w.id !== widgetId) return;
       setWidget(w);
       setTheme(t);
       setAccentColor(ac);
       setFontSize(fs);
+      setStackSiblings(ss ?? []);
       if (!hasShownRef.current) {
         hasShownRef.current = true;
         void win.show();
@@ -317,6 +330,13 @@ const WidgetWindow: React.FC<WidgetWindowProps> = ({ widgetId }) => {
   // ── ยังไม่มี state: render ว่างเปล่า (window ยังซ่อนอยู่) ─────────────
   if (!widget) return null;
 
+  // ── Stack tab bar ─────────────────────────────────────────────────────────
+  // รวม self + siblings เรียงตาม stackOrder เพื่อแสดง tab bar
+  const allTabs = widget.stack.stackId && stackSiblings.length > 0
+    ? [...stackSiblings, { id: widgetId, label: getTabLabel(widget), stackOrder: widget.stack.stackOrder }]
+        .sort((a, b) => a.stackOrder - b.stackOrder)
+    : [];
+
   return (
     <div
       ref={containerRef}
@@ -328,12 +348,61 @@ const WidgetWindow: React.FC<WidgetWindowProps> = ({ widgetId }) => {
         cursor:     widget.isLocked ? "default" : "grab",
         userSelect: "none",
         fontSize:   FONT_SIZE_MAP[fontSize],
-        // CSS variables สำหรับ theme (ส่งต่อให้ widget components ข้างใน)
-        ["--accent-color" as string]: accentColor,
+        // CSS variables สำหรับ theme + font size (ส่งต่อให้ widget components)
+        ["--accent-color"   as string]: accentColor,
+        ["--font-size-base" as string]: FONT_SIZE_MAP[fontSize],
       }}
       data-theme={theme}
     >
       <div style={{ position: "absolute", inset: 0, overflow: "hidden", borderRadius: "14px", display: "flex", flexDirection: "column" }}>
+        {/* ── Tab bar — แสดงเมื่ออยู่ใน stack ─────────────────────────────── */}
+        {allTabs.length > 1 && (
+          <div
+            data-tauri-drag-region
+            style={{
+              display: "flex", flexShrink: 0,
+              background: "var(--widget-bg)",
+              borderBottom: "1px solid var(--divider)",
+              borderRadius: "14px 14px 0 0",
+              overflow: "hidden",
+            }}
+          >
+            {allTabs.map((tab) => {
+              const isActive = tab.id === widgetId;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isActive) {
+                      void import("@tauri-apps/api/event").then(({ emit }) =>
+                        emit("widget:stack-switch", {
+                          stackId:       widget.stack.stackId,
+                          targetWidgetId: tab.id,
+                        })
+                      );
+                    }
+                  }}
+                  style={{
+                    flex: 1, padding: "5px 8px",
+                    fontSize: "10px", fontWeight: isActive ? "700" : "400",
+                    color: isActive ? "var(--accent-color)" : "var(--text-secondary)",
+                    background: isActive
+                      ? "color-mix(in srgb, var(--accent-color) 12%, var(--widget-bg))"
+                      : "transparent",
+                    border: "none", borderBottom: isActive ? "2px solid var(--accent-color)" : "2px solid transparent",
+                    cursor: isActive ? "default" : "pointer",
+                    fontFamily: "inherit",
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    transition: "color 0.15s, background 0.15s",
+                  }}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
         {renderContent()}
       </div>
 

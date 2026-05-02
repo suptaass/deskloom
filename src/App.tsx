@@ -206,6 +206,21 @@ const App: React.FC = () => {
     // ลบ isSettingsOpen ออกจาก dependency — ไม่ใช้แล้วใน handler
   }, [toggleFocusMode]);
 
+  // ── Show + center window เมื่อ Settings เปิด ─────────────────────────────
+  // ทำไม: window อาจถูก hide หรือถูกลากไปตำแหน่งอื่น
+  // เมื่อ Settings เปิด ต้อง show + center เสมอเพื่อให้ panel อยู่กลางจอ
+  useEffect(() => {
+    if (!isSettingsOpen) return;
+    const showAndCenter = async () => {
+      try {
+        const win = getCurrentWindow();
+        await win.show();
+        await win.center();
+      } catch { /* ignore */ }
+    };
+    void showAndCenter();
+  }, [isSettingsOpen]);
+
   // ── Tray events ───────────────────────────────────────────────────────────
   useEffect(() => {
     const unlistenPromise = listen("tray-open-settings", () => {
@@ -248,6 +263,18 @@ const App: React.FC = () => {
     return () => { unlistenPromise.then((fn) => fn()); };
   }, []);
 
+  // ── Stack switch — เปลี่ยน tab ที่ active ใน stack ────────────────────────
+  // ใช้ widgetsRef/updateWidgetRef เพื่อหลีกเลี่ยง stale closure
+  const handleStackSwitch = useCallback(
+    (stackId: string, targetWidgetId: string) => {
+      const stackMembers = widgetsRef.current.filter((w) => w.stack.stackId === stackId);
+      stackMembers.forEach((w) => {
+        updateWidgetRef.current(w.id, { isVisible: w.id === targetWidgetId });
+      });
+    },
+    []
+  );
+
   // ── displayWidgets — apply condition filter ────────────────────────────────
   const displayWidgets = useMemo(() => {
     return widgets.map((w) => {
@@ -269,6 +296,7 @@ const App: React.FC = () => {
       onSizeChange:     updateWidgetSize,
       onDataChange:     (id, changes) => updateWidget(id, changes),
       onMonitorChange:  setWidgetMonitor,
+      onStackSwitch:    handleStackSwitch,
     },
     isLoaded
   );
@@ -478,6 +506,7 @@ const App: React.FC = () => {
       updateWidget(widgetId, {
         position: { ...anchor.position },
         size: { ...anchor.size },
+        isVisible: false, // ซ่อนตัวที่ join — ใช้ tab bar ใน primary window สลับแทน
         stack: {
           stackId: targetStackId,
           stackOrder: normalized.length,
