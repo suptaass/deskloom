@@ -46,21 +46,35 @@
 
 ## 📸 Screenshots
 
-### Desktop
+### First-run Experience
 
-| Light theme | Dark theme |
-|---|---|
-| ![Light](docs/Screenshot-Light.png) | ![Dark](docs/Screenshort-Dark.png) |
+Welcome to DeskLoom — get started with the interactive onboarding overlay.
+
+![Welcome](docs/screenshot-welcome.png)
+
+### Light Theme
+
+The clean, minimal light theme — perfect for daytime use.
+
+![Light theme](docs/screenshot-light.png)
+
+### Dark Theme
+
+Comfortable dark theme for focused work sessions.
+
+![Dark theme](docs/screenshot-dark.png)
 
 ### Settings & Customization
 
-| Settings (Light) | Settings (Dark) | Accent Color |
-|---|---|---|
-| ![Settings Light](docs/Setting-Light.png) | ![Settings Dark](docs/Setting-Dark.png) | ![Accent](<docs/Change-Color accent.png>) |
+Customize theme, accent color, font size, and widget behavior.
 
-### First-run Welcome
+![Settings](docs/screenshot-settings.png)
 
-![Welcome](docs/Welcome.png)
+### Multiple Widgets
+
+Arrange multiple widget instances freely — drag, resize, and stack as needed.
+
+![Widgets](docs/screenshot-widgets.png)
 
 ---
 
