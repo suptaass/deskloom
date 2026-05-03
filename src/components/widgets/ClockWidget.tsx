@@ -100,13 +100,26 @@ const ClockWidget: React.FC<ClockWidgetProps> = ({ widget, onConfigChange }) => 
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 
-  const btnStyle: React.CSSProperties = {
+  const btnBase: React.CSSProperties = {
     fontSize: "10px", padding: "2px 8px", borderRadius: "4px",
     border: "1px solid var(--btn-border)",
-    background: "var(--btn-bg)", color: "var(--btn-text)",
     cursor: "pointer", pointerEvents: "all",
     letterSpacing: "0.5px", position: "relative", zIndex: 10,
-    fontFamily: "inherit",
+    fontFamily: "inherit", transition: "background 0.15s, color 0.15s",
+  };
+
+  const btnActive: React.CSSProperties = {
+    ...btnBase,
+    background: "var(--accent-color)",
+    color: "#fff",
+    border: "1px solid var(--accent-color)",
+    fontWeight: "700",
+  };
+
+  const btnInactive: React.CSSProperties = {
+    ...btnBase,
+    background: "var(--btn-bg)",
+    color: "var(--btn-text)",
   };
 
   return (
@@ -130,11 +143,17 @@ const ClockWidget: React.FC<ClockWidgetProps> = ({ widget, onConfigChange }) => 
         {dateString}
       </p>
       <div style={{ display: "flex", gap: "6px", marginTop: "6px" }}>
-        <button style={btnStyle} onClick={handleToggleFormat}>
-          {config.use24h ? "12h" : "24h"}
+        <button style={config.use24h ? btnInactive : btnActive} onClick={handleToggleFormat}>
+          12h
         </button>
-        <button style={btnStyle} onClick={handleToggleLocale}>
-          {config.locale === "th-TH" ? "EN" : "TH"}
+        <button style={config.use24h ? btnActive : btnInactive} onClick={handleToggleFormat}>
+          24h
+        </button>
+        <button style={config.locale === "th-TH" ? btnActive : btnInactive} onClick={handleToggleLocale}>
+          TH
+        </button>
+        <button style={config.locale === "en-US" ? btnActive : btnInactive} onClick={handleToggleLocale}>
+          EN
         </button>
       </div>
     </div>
