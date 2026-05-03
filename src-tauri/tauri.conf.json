@@ -8,6 +8,15 @@
     "beforeBuildCommand": "pnpm build",
     "frontendDist": "../dist"
   },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://github.com/suptaass/deskloom/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEE3NzM1RDZBRDMxMzk0RUEKUldUcWxCUFRhbDF6cHo0L3JJaGpiL2dQVjdaYmVlWGplTkhleVlsMUd5TEV3NDMxLzNCZENFVXEK"
+    }
+  },
   "app": {
     "windows": [
       {

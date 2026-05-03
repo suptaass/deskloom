@@ -152,3 +152,34 @@ ff5f31b fix: default theme fallback to 'light' + lesson docs Phase 11
 - [x] No uncommitted changes
 
 **Status: Ready for public launch / wider distribution** 🚀
+
+---
+
+## Next Phase Planning
+
+### Phase 12 — Auto-Update System
+
+**Goal:** Enable seamless in-app updates without requiring users to manually download and reinstall from GitHub.
+
+**User Experience:**
+1. App detects new version available
+2. Popup notification: "Update available: v0.6.1"
+3. User clicks "Update" → app downloads + installs
+4. App restarts with new version
+5. No need to manually download .exe or reinstall
+
+**Technical Approach:**
+- Use `@tauri-apps/plugin-updater` (official Tauri plugin)
+- Backend: GitHub Releases API (free, no server needed)
+- Config: Add updater section to `tauri.conf.json`
+- Frontend: Modal/notification UI for update prompts
+
+**Checklist for Implementation:**
+- [ ] Add `@tauri-apps/plugin-updater` to dependencies
+- [ ] Configure updater in `tauri.conf.json` (GitHub Releases endpoint)
+- [ ] Create UpdateManager hook/service
+- [ ] Add update check on app startup
+- [ ] Create UpdateNotification UI component
+- [ ] Test update flow with dummy release
+- [ ] Update README with release procedure
+- [ ] Test on exe build (not dev mode)

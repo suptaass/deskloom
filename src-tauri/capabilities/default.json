@@ -32,6 +32,9 @@
     "dialog:allow-open",
     "dialog:allow-save",
     "fs:scope-document-recursive",
-    "fs:scope-home-recursive"
+    "fs:scope-home-recursive",
+    "updater:allow-check",
+    "updater:allow-download-and-install",
+    "process:allow-restart"
   ]
 }

@@ -8,9 +8,11 @@ import {
   enable as autostartEnable,
   disable as autostartDisable,
 } from "@tauri-apps/plugin-autostart";
+import { type Update, check as checkUpdate } from "@tauri-apps/plugin-updater";
 import SettingsPanel from "./components/SettingsPanel";
 import Toast from "./components/Toast";
 import OnboardingOverlay from "./components/OnboardingOverlay";
+import UpdateModal from "./components/UpdateModal";
 import { useWidgetWindowSync } from "./hooks/useWidgetWindowSync";
 import { useAppStore, DEFAULT_WIDGET_IDS } from "./store/appStore";
 import { loadState, saveState, writeLayoutFile, readLayoutFile } from "./utils/storage";
@@ -101,6 +103,7 @@ const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [, setIsFirstRun]                   = useState<boolean>(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+  const [pendingUpdate, setPendingUpdate]   = useState<Update | null>(null);
 
   // ── currentMinute — re-compute condition ทุก 60 วินาที ────────────────────
   const [currentMinute, setCurrentMinute] = useState<number>(() =>
@@ -143,6 +146,16 @@ const App: React.FC = () => {
         }
       }
       setIsLoaded(true);
+
+      // Check for updates (silent fail — don't block startup)
+      try {
+        const update = await checkUpdate();
+        if (update?.available) {
+          setPendingUpdate(update);
+        }
+      } catch (err) {
+        console.debug("[App] update check failed:", err);
+      }
     };
     init();
   }, [setWidgets, setTheme, setAccentColor, setFontSize, setAlwaysOnTop, setAutostart, loadLicenseFromDisk]);
@@ -671,6 +684,7 @@ const App: React.FC = () => {
       />
       <Toast message={toastMessage?.msg ?? ""} onDismiss={handleToastDismiss} />
       <OnboardingOverlay isVisible={showOnboarding} onDismiss={handleDismissOnboarding} />
+      <UpdateModal update={pendingUpdate} onDismiss={() => setPendingUpdate(null)} />
     </div>
   );
 };
