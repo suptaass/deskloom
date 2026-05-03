@@ -155,31 +155,65 @@ ff5f31b fix: default theme fallback to 'light' + lesson docs Phase 11
 
 ---
 
-## Next Phase Planning
-
-### Phase 12 — Auto-Update System
+## Phase 12 — Auto-Update System ✅ COMPLETED
 
 **Goal:** Enable seamless in-app updates without requiring users to manually download and reinstall from GitHub.
 
-**User Experience:**
-1. App detects new version available
-2. Popup notification: "Update available: v0.6.1"
-3. User clicks "Update" → app downloads + installs
-4. App restarts with new version
-5. No need to manually download .exe or reinstall
+**Implementation Summary:**
+- ✅ Added `@tauri-apps/plugin-updater` + `@tauri-apps/plugin-process` to Cargo.toml + package.json
+- ✅ Registered plugins in `src-tauri/src/lib.rs`
+- ✅ Added updater permissions to `src-tauri/capabilities/default.json`
+- ✅ Configured updater endpoints in `tauri.conf.json` → GitHub Releases `/latest/download/latest.json`
+- ✅ Generated signing key pair (`deskloom.key` + `deskloom.key.pub`)
+- ✅ Created `src/components/UpdateModal.tsx` with fade-in animation + download progress
+- ✅ Modified `src/App.tsx` to check updates silently on startup
+- ✅ Build tested successfully — exe includes all updater code
+- ✅ Commit pushed to GitHub
 
-**Technical Approach:**
-- Use `@tauri-apps/plugin-updater` (official Tauri plugin)
-- Backend: GitHub Releases API (free, no server needed)
-- Config: Add updater section to `tauri.conf.json`
-- Frontend: Modal/notification UI for update prompts
+**User Experience (When Implemented):**
+1. App starts → checks GitHub for new version
+2. If new version available → modal popup: "Update Available — vX.X.X"
+3. User clicks "Install Update" → download + install + auto-restart
+4. App restarts with new version (seamless)
+5. Button "Later" lets user skip for now
 
-**Checklist for Implementation:**
-- [ ] Add `@tauri-apps/plugin-updater` to dependencies
-- [ ] Configure updater in `tauri.conf.json` (GitHub Releases endpoint)
-- [ ] Create UpdateManager hook/service
-- [ ] Add update check on app startup
-- [ ] Create UpdateNotification UI component
-- [ ] Test update flow with dummy release
-- [ ] Update README with release procedure
-- [ ] Test on exe build (not dev mode)
+**Release Procedure (For Each Future Release):**
+
+After bumping version and building exe:
+
+1. **Build exe with signing:**
+   ```bash
+   TAURI_SIGNING_PRIVATE_KEY_PATH="./deskloom.key" TAURI_SIGNING_PRIVATE_KEY_PASSWORD="[your password]" pnpm tauri build
+   ```
+   _(Creates `.exe.sig` file automatically)_
+
+2. **Create `latest.json` manifest** (must be exact format):
+   ```json
+   {
+     "version": "v0.6.1",
+     "notes": "What's new in this release",
+     "pub_date": "2026-05-04T00:00:00Z",
+     "platforms": {
+       "windows-x86_64": {
+         "signature": "[contents of DeskLoom_0.6.1_x64-setup.exe.sig]",
+         "url": "https://github.com/suptaass/deskloom/releases/download/v0.6.1/DeskLoom_0.6.1_x64-setup.exe"
+       }
+     }
+   }
+   ```
+
+3. **Upload to GitHub Release:**
+   - Create release tag: `v0.6.1`
+   - Upload files:
+     - `DeskLoom_0.6.1_x64-setup.exe`
+     - `DeskLoom_0.6.1_x64-setup.exe.sig`
+     - `latest.json` ← Users will fetch this to check for updates
+
+4. **Verify:** App running old version should show update modal
+
+**Important Notes:**
+- ⚠️ **Signing key password is critical** — save it somewhere safe. Losing it means can't sign future updates.
+- ⚠️ **`latest.json` must be present** on every release. Without it, app won't detect updates.
+- ⚠️ **URL in `latest.json` must point to correct exe location** on GitHub Release.
+- Silent update check won't block startup if check fails (network down, malformed JSON, etc.)
+- Dev mode (`pnpm tauri dev`) doesn't trigger updater — only exe builds.
