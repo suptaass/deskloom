@@ -26,3 +26,13 @@ dist-ssr
 # Tauri signing keys
 deskloom.key
 deskloom.key.pub
+
+# Internal dev notes — do not expose
+Handoff/
+Lesson/
+
+# Notion push scripts (contain API tokens)
+push-notion*.mjs
+
+# Claude Code internal settings
+.claude/
