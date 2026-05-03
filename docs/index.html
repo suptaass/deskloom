@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>DeskLoom — Minimal Desktop Widgets for Windows</title>
+<meta name="description" content="Beautiful, minimal desktop widgets for Windows. Clock, tasks, notes, focus timer and more — always on your desktop."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet"/>
+<style>
+/* ─── TOKENS ───────────────────────────────────────────────────── */
+:root {
+  --accent:        #6C8EF5;
+  --accent-soft:   rgba(108,142,245,0.12);
+  --accent-glow:   rgba(108,142,245,0.28);
+  --bg:            #F5F4F0;
+  --bg2:           #ECEAE6;
+  --card-bg:       #FFFFFF;
+  --card-border:   rgba(0,0,0,0.075);
+  --card-shadow:   0 6px 28px rgba(0,0,0,0.09),0 1px 4px rgba(0,0,0,0.05);
+  --card-shadow-lg:0 16px 56px rgba(0,0,0,0.14),0 3px 10px rgba(0,0,0,0.07);
+  --text:          #18181b;
+  --text-sub:      #71717a;
+  --text-dim:      #a1a1aa;
+  --nav-bg:        rgba(247,246,242,0.82);
+  --nav-border:    rgba(0,0,0,0.07);
+  --divider:       rgba(0,0,0,0.07);
+  --green:         #22c55e;
+  --amber:         #f59e0b;
+  --red:           #ef4444;
+  --blue:          #3b82f6;
+  --radius:        16px;
+  --radius-sm:     10px;
+}
+[data-theme="dark"] {
+  --bg:            #0D1629;
+  --bg2:           #111e38;
+  --card-bg:       rgba(255,255,255,0.055);
+  --card-border:   rgba(255,255,255,0.09);
+  --card-shadow:   0 4px 24px rgba(0,0,0,0.4),0 1px 4px rgba(0,0,0,0.2);
+  --card-shadow-lg:0 16px 56px rgba(0,0,0,0.5),0 2px 8px rgba(0,0,0,0.3);
+  --text:          rgba(255,255,255,0.93);
+  --text-sub:      rgba(255,255,255,0.52);
+  --text-dim:      rgba(255,255,255,0.28);
+  --nav-bg:        rgba(13,22,41,0.85);
+  --nav-border:    rgba(255,255,255,0.07);
+  --divider:       rgba(255,255,255,0.07);
+}
+
+/* ─── RESET ─────────────────────────────────────────────────────── */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);color:var(--text);
+  overflow-x:hidden;
+  transition:background 0.4s,color 0.4s;
+}
+
+/* ─── NAV ────────────────────────────────────────────────────────── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 40px;height:60px;
+  background:var(--nav-bg);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--nav-border);
+  transition:background 0.4s,border-color 0.4s;
+}
+.nav-logo{
+  display:flex;align-items:center;gap:9px;
+  font-size:16px;font-weight:600;color:var(--text);text-decoration:none;
+}
+.nav-logo-mark{
+  width:30px;height:30px;border-radius:9px;
+  background:var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;
+}
+.nav-right{display:flex;align-items:center;gap:8px;}
+.nav-link{
+  font-size:13.5px;color:var(--text-sub);text-decoration:none;
+  padding:6px 12px;border-radius:8px;
+  transition:color 0.2s,background 0.2s;
+}
+.nav-link:hover{color:var(--text);background:rgba(128,128,128,0.08);}
+.theme-toggle{
+  width:36px;height:36px;border-radius:9px;border:1px solid var(--divider);
+  background:transparent;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:15px;
+  transition:all 0.2s;color:var(--text-sub);
+}
+.theme-toggle:hover{background:rgba(128,128,128,0.08);color:var(--text);}
+.btn-nav{
+  font-size:13px;font-weight:500;padding:8px 18px;border-radius:9px;
+  background:var(--accent);color:#fff;border:none;cursor:pointer;
+  text-decoration:none;transition:opacity 0.2s,transform 0.15s;
+}
+.btn-nav:hover{opacity:0.88;transform:translateY(-1px);}
+
+/* ─── STORY (SCROLLYTELLING) ─────────────────────────────────────── */
+.story-wrapper{
+  position:relative;
+  height:650vh; /* 6 chapters + exit */
+}
+.story-canvas{
+  position:sticky;top:0;
+  width:100%;height:100vh;
+  overflow:hidden;
+  background:var(--bg);
+  transition:background 0.4s;
+}
+
+/* ── REALISTIC DESK SURFACE LIGHTING ── */
+.story-canvas{
+  /* Subtle warm surface grain */
+  background-color:var(--bg);
+}
+.story-canvas::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  /* Paper/desk surface grain using SVG turbulence */
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-size:260px 260px;
+  opacity:0.022;
+  mix-blend-mode:multiply;
+}
+[data-theme="dark"] .story-canvas::before{ opacity:0.04; mix-blend-mode:screen; }
+
+.canvas-light{
+  position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:
+    /* ① Main overhead spotlight — bright center-top, like a ceiling studio light */
+    radial-gradient(ellipse 65% 55% at 50% 2%, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.0) 60%),
+    /* ② Soft fill light from upper-left */
+    radial-gradient(ellipse 55% 45% at 18% 15%, rgba(255,254,250,0.45) 0%, transparent 65%),
+    /* ③ Subtle desk-surface reflection band (horizontal midline) */
+    radial-gradient(ellipse 80% 15% at 50% 52%, rgba(255,255,255,0.18) 0%, transparent 100%),
+    /* ④ Bottom edge shadow — depth, as if light can't reach far edge of desk */
+    radial-gradient(ellipse 90% 28% at 50% 104%, rgba(130,120,108,0.28) 0%, transparent 70%),
+    /* ⑤ Left ambient shadow */
+    radial-gradient(ellipse 22% 100% at 0% 50%, rgba(140,130,118,0.18) 0%, transparent 70%),
+    /* ⑥ Right ambient shadow */
+    radial-gradient(ellipse 22% 100% at 100% 50%, rgba(140,130,118,0.18) 0%, transparent 70%);
+}
+[data-theme="dark"] .canvas-light{
+  background:
+    radial-gradient(ellipse 65% 50% at 50% 2%, rgba(108,142,245,0.09) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 18% 15%, rgba(108,142,245,0.05) 0%, transparent 65%),
+    radial-gradient(ellipse 90% 30% at 50% 104%, rgba(0,0,0,0.55) 0%, transparent 70%),
+    radial-gradient(ellipse 25% 100% at 0% 50%, rgba(0,0,0,0.25) 0%, transparent 70%),
+    radial-gradient(ellipse 25% 100% at 100% 50%, rgba(0,0,0,0.25) 0%, transparent 70%);
+}
+
+/* ── CARDS ──────────────────────────────────────────────────────── */
+.wcard{
+  position:absolute;
+  background:var(--card-bg);
+  border:1px solid var(--card-border);
+  border-radius:var(--radius);
+  box-shadow:var(--card-shadow);
+  padding:16px;
+  transition:
+    opacity 0.55s cubic-bezier(.4,0,.2,1),
+    transform 0.55s cubic-bezier(.4,0,.2,1),
+    box-shadow 0.55s cubic-bezier(.4,0,.2,1),
+    border-color 0.55s cubic-bezier(.4,0,.2,1);
+  z-index:10;
+  user-select:none;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+.wcard.dimmed{
+  opacity:0.38;
+  transform:var(--base-transform,none) scale(0.96) !important;
+}
+.wcard.focused{
+  box-shadow:var(--card-shadow-lg),0 0 0 1.5px var(--accent);
+  border-color:rgba(108,142,245,0.4);
+  z-index:20;
+}
+
+/* card positions (left side) */
+#card-clock  { width:196px; left:3%;  top:11%; --base-transform:rotate(-4deg); transform:rotate(-4deg); }
+#card-todo   { width:214px; left:18%; top:40%; --base-transform:rotate(2.5deg); transform:rotate(2.5deg); }
+#card-notes  { width:178px; left:2%;  top:62%; --base-transform:rotate(-2deg); transform:rotate(-2deg); }
+#card-habit  { width:206px; left:16%; bottom:6%; --base-transform:rotate(3deg); transform:rotate(3deg); }
+
+/* card positions (right side) */
+#card-pomodoro { width:192px; right:2%;  top:8%;  --base-transform:rotate(3.5deg); transform:rotate(3.5deg); }
+#card-weather  { width:196px; right:19%; top:38%; --base-transform:rotate(-3deg); transform:rotate(-3deg); }
+#card-links    { width:178px; right:1%;  top:60%; --base-transform:rotate(2deg); transform:rotate(2deg); }
+#card-theme    { width:210px; right:16%; bottom:7%; --base-transform:rotate(-2.5deg); transform:rotate(-2.5deg); }
+
+/* ── WIDGET INTERNALS ──────────────────────────────────────────── */
+.wh{ /* widget header */
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;
+}
+.wh-title{font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;}
+.wh-icon{font-size:14px;}
+.wh-badge{
+  font-size:10px;font-weight:600;
+  padding:2px 7px;border-radius:100px;
+  background:var(--accent-soft);color:var(--accent);
+}
+.wh-badge-gold{background:rgba(245,158,11,0.12);color:#d97706;}
+
+/* Clock */
+.clock-time{font-size:36px;font-weight:300;letter-spacing:-0.03em;line-height:1;margin-bottom:5px;}
+.clock-date{font-size:12px;color:var(--text-sub);margin-bottom:2px;}
+.clock-locale{font-size:11px;color:var(--text-dim);}
+
+/* Todo */
+.todo-meta{font-size:11px;color:var(--text-dim);margin-bottom:8px;}
+.todo-progress-wrap{height:4px;background:var(--divider);border-radius:100px;margin-bottom:12px;overflow:hidden;}
+.todo-progress-bar{height:100%;border-radius:100px;background:var(--accent);transition:width 0.6s;}
+.todo-item{
+  display:flex;align-items:center;gap:8px;
+  font-size:12.5px;color:var(--text);padding:5px 0;
+  border-bottom:1px solid var(--divider);
+}
+.todo-item:last-child{border-bottom:none;}
+.todo-check{
+  width:15px;height:15px;border-radius:4px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;
+}
+.todo-check.done{background:var(--green);color:#fff;}
+.todo-check.open{border:1.5px solid var(--text-dim);}
+.todo-text{flex:1;}
+.todo-text.done-text{text-decoration:line-through;color:var(--text-dim);}
+
+/* Notes */
+.note-body{font-size:12.5px;color:var(--text-sub);line-height:1.6;}
+.note-divider{height:1px;background:var(--divider);margin:10px 0;}
+.note-tag{font-size:10px;color:var(--text-dim);}
+
+/* Pomodoro */
+.pomodoro-dots{display:flex;gap:5px;margin-bottom:14px;}
+.pomodoro-dot{width:8px;height:8px;border-radius:50%;}
+.pomodoro-dot.active{background:var(--accent);}
+.pomodoro-dot.done{background:var(--green);}
+.pomodoro-dot.empty{background:var(--divider);border:1.5px solid var(--card-border);}
+.pomodoro-ring{
+  width:72px;height:72px;margin:0 auto 12px;
+  position:relative;display:flex;align-items:center;justify-content:center;
+}
+.pomodoro-ring svg{position:absolute;inset:0;transform:rotate(-90deg);}
+.pomodoro-timer{font-size:18px;font-weight:600;letter-spacing:-0.02em;position:relative;z-index:1;}
+.pomodoro-label{font-size:10.5px;color:var(--text-dim);text-align:center;margin-bottom:10px;}
+.pomodoro-btn{
+  width:100%;padding:7px;border-radius:8px;border:none;cursor:pointer;
+  background:var(--accent);color:#fff;font-size:12px;font-weight:500;font-family:inherit;
+}
+
+/* Weather */
+.weather-main{display:flex;align-items:flex-end;gap:8px;margin-bottom:6px;}
+.weather-temp{font-size:38px;font-weight:300;letter-spacing:-0.03em;line-height:1;}
+.weather-icon-big{font-size:28px;margin-bottom:4px;}
+.weather-desc{font-size:12px;color:var(--text-sub);margin-bottom:8px;}
+.weather-row{display:flex;justify-content:space-between;}
+.weather-stat{text-align:center;}
+.weather-stat-val{font-size:13px;font-weight:500;}
+.weather-stat-lbl{font-size:10px;color:var(--text-dim);}
+.weather-city{font-size:11px;color:var(--text-dim);margin-bottom:10px;}
+
+/* Habit */
+.habit-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 0;border-bottom:1px solid var(--divider);
+}
+.habit-item:last-child{border-bottom:none;}
+.habit-left{display:flex;align-items:center;gap:8px;font-size:12.5px;}
+.habit-streak{
+  display:flex;align-items:center;gap:3px;
+  font-size:11px;font-weight:600;color:var(--amber);
+}
+.habit-dots{display:flex;gap:2px;margin-top:4px;}
+.habit-dot{width:5px;height:5px;border-radius:50%;}
+.habit-dot.filled{background:var(--accent);}
+.habit-dot.miss{background:var(--divider);}
+
+/* Quick Links */
+.link-grid{display:flex;flex-direction:column;gap:6px;}
+.link-item{
+  display:flex;align-items:center;gap:9px;
+  padding:7px 10px;border-radius:9px;
+  background:rgba(128,128,128,0.06);
+  font-size:12.5px;cursor:pointer;
+  transition:background 0.15s;
+}
+.link-item:hover{background:rgba(128,128,128,0.1);}
+.link-icon{font-size:14px;width:20px;text-align:center;}
+.link-name{flex:1;}
+.link-arrow{font-size:10px;color:var(--text-dim);}
+
+/* Theme card */
+.theme-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.theme-label{font-size:12.5px;}
+.theme-switch{
+  width:40px;height:22px;border-radius:100px;
+  background:var(--accent);position:relative;cursor:pointer;
+}
+.theme-switch-knob{
+  width:16px;height:16px;border-radius:50%;background:#fff;
+  position:absolute;top:3px;right:3px;
+  box-shadow:0 1px 4px rgba(0,0,0,0.2);
+}
+.accent-row{display:flex;gap:6px;margin-top:4px;}
+.accent-dot{width:16px;height:16px;border-radius:50%;cursor:pointer;}
+.accent-dot.sel{box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--accent);}
+
+/* ─── STORY CENTER TEXT ─────────────────────────────────────────── */
+.story-center{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:min(480px,90vw);
+  text-align:center;
+  z-index:30;
+  pointer-events:none;
+}
+.story-chapter{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:100%;
+  opacity:0;
+  transition:opacity 0.5s cubic-bezier(.4,0,.2,1),transform 0.5s cubic-bezier(.4,0,.2,1);
+  transform:translate(-50%,-48%);
+  pointer-events:none;
+}
+.story-chapter.active{
+  opacity:1;
+  transform:translate(-50%,-50%);
+  pointer-events:auto;
+}
+.ch-badge{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:12px;font-weight:500;color:var(--accent);
+  background:var(--accent-soft);
+  border:1px solid rgba(108,142,245,0.22);
+  padding:5px 14px;border-radius:100px;
+  margin-bottom:22px;
+}
+.ch-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+h1.ch-headline{
+  font-size:clamp(34px,5.5vw,58px);
+  font-weight:700;line-height:1.1;letter-spacing:-0.03em;
+  color:var(--text);margin-bottom:8px;
+}
+h1.ch-headline em{font-style:italic;color:var(--accent);}
+.ch-sub{
+  font-size:clamp(14px,1.6vw,17px);color:var(--text-sub);
+  line-height:1.65;margin-bottom:30px;
+  max-width:400px;margin-left:auto;margin-right:auto;
+}
+.ch-sub b{color:var(--text);font-weight:500;}
+.ch-cta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;pointer-events:auto;}
+.btn-primary{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:15px;font-weight:600;padding:13px 26px;border-radius:12px;
+  background:var(--accent);color:#fff;border:none;cursor:pointer;
+  text-decoration:none;
+  box-shadow:0 0 28px var(--accent-glow);
+  transition:opacity 0.2s,transform 0.15s;font-family:inherit;
+}
+.btn-primary:hover{opacity:0.88;transform:translateY(-2px);}
+.btn-ghost{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:15px;font-weight:500;padding:13px 26px;border-radius:12px;
+  background:transparent;color:var(--text);
+  border:1px solid var(--divider);cursor:pointer;
+  text-decoration:none;transition:all 0.2s;font-family:inherit;
+}
+.btn-ghost:hover{background:rgba(128,128,128,0.07);border-color:rgba(128,128,128,0.2);}
+
+/* feature pill (in chapters) */
+.ch-feature-list{
+  display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
+  margin-bottom:28px;
+}
+.ch-pill{
+  font-size:12.5px;font-weight:500;
+  padding:5px 14px;border-radius:100px;
+  border:1px solid var(--divider);
+  color:var(--text-sub);
+}
+
+/* scroll indicator */
+.scroll-hint{
+  position:absolute;bottom:32px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  opacity:1;transition:opacity 0.4s;z-index:40;
+}
+.scroll-hint.hidden{opacity:0;pointer-events:none;}
+.scroll-hint span{font-size:11px;color:var(--text-dim);letter-spacing:.06em;text-transform:uppercase;}
+.scroll-mouse{
+  width:22px;height:34px;border:1.5px solid var(--text-dim);
+  border-radius:100px;position:relative;
+}
+.scroll-mouse::after{
+  content:'';position:absolute;top:6px;left:50%;transform:translateX(-50%);
+  width:3px;height:6px;border-radius:100px;background:var(--text-dim);
+  animation:scrollDown 1.5s ease-in-out infinite;
+}
+@keyframes scrollDown{
+  0%{opacity:1;transform:translateX(-50%) translateY(0);}
+  100%{opacity:0;transform:translateX(-50%) translateY(10px);}
+}
+
+/* chapter progress dots */
+.ch-progress{
+  position:absolute;bottom:28px;left:50%;transform:translateX(-50%);
+  display:flex;gap:6px;z-index:40;
+}
+.ch-progress-dot{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--text-dim);transition:all 0.3s;cursor:pointer;
+}
+.ch-progress-dot.active{
+  background:var(--accent);width:18px;border-radius:100px;
+}
+
+/* ─── BELOW-STORY SECTIONS ──────────────────────────────────────── */
+.below-story{background:var(--bg);transition:background 0.4s;}
+
+/* Features grid */
+.feat-section{max-width:1100px;margin:0 auto;padding:100px 40px;}
+.feat-header{text-align:center;margin-bottom:60px;}
+.feat-tag{font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:12px;}
+.feat-header h2{font-size:clamp(28px,4vw,42px);font-weight:700;letter-spacing:-0.025em;line-height:1.2;margin-bottom:10px;}
+.feat-header p{font-size:16px;color:var(--text-sub);max-width:460px;margin:0 auto;line-height:1.6;}
+.feat-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:14px;
+}
+.feat-card{
+  background:var(--card-bg);border:1px solid var(--card-border);
+  border-radius:var(--radius);padding:26px;
+  transition:all 0.25s;
+}
+.feat-card:hover{
+  transform:translateY(-3px);
+  box-shadow:var(--card-shadow-lg);
+  border-color:rgba(108,142,245,0.25);
+}
+.feat-card-icon{
+  width:42px;height:42px;border-radius:11px;
+  background:var(--accent-soft);
+  display:flex;align-items:center;justify-content:center;
+  font-size:19px;margin-bottom:14px;
+}
+.feat-card h3{font-size:15px;font-weight:600;margin-bottom:6px;}
+.feat-card p{font-size:13px;color:var(--text-sub);line-height:1.65;}
+.feat-premium{
+  font-size:10px;font-weight:600;
+  color:#d97706;background:rgba(245,158,11,0.1);
+  border:1px solid rgba(245,158,11,0.2);
+  padding:2px 7px;border-radius:100px;margin-left:7px;vertical-align:middle;
+}
+
+/* Download section */
+.dl-section{padding:100px 40px;text-align:center;}
+.dl-card{
+  max-width:600px;margin:0 auto;
+  background:var(--card-bg);border:1px solid var(--card-border);
+  border-radius:24px;padding:60px 48px;
+  position:relative;overflow:hidden;
+  box-shadow:var(--card-shadow-lg);
+}
+.dl-card::before{
+  content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:55%;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+}
+.dl-card h2{font-size:34px;font-weight:700;letter-spacing:-0.025em;margin-bottom:8px;}
+.dl-card .dl-th{font-size:16px;color:var(--text-sub);margin-bottom:14px;}
+.dl-card p{font-size:15px;color:var(--text-sub);line-height:1.65;max-width:420px;margin:0 auto 36px;}
+.dl-meta{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-top:26px;}
+.dl-meta-item{font-size:12.5px;color:var(--text-dim);display:flex;align-items:center;gap:5px;}
+
+/* Cap divider */
+.cap{max-width:1100px;margin:0 auto;height:1px;background:var(--divider);}
+
+/* Footer */
+footer{
+  padding:32px 40px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:14px;
+  border-top:1px solid var(--divider);
+}
+.footer-l{font-size:13px;color:var(--text-dim);}
+.footer-r{display:flex;gap:18px;}
+.footer-r a{font-size:13px;color:var(--text-dim);text-decoration:none;transition:color 0.2s;}
+.footer-r a:hover{color:var(--text-sub);}
+
+/* ─── FADE UP ANIMATION ─────────────────────────────────────────── */
+.fade-up{opacity:0;transform:translateY(22px);transition:opacity 0.6s ease,transform 0.6s ease;}
+.fade-up.visible{opacity:1;transform:translateY(0);}
+
+/* ─── RESPONSIVE ─────────────────────────────────────────────────── */
+@media(max-width:900px){
+  #card-habit,#card-links,#card-theme,#card-notes{display:none;}
+  #card-clock{left:1%;top:10%;transform:rotate(-3deg) scale(0.85);}
+  #card-todo{left:1%;top:50%;transform:rotate(2deg) scale(0.85);}
+  #card-pomodoro{right:1%;top:8%;transform:rotate(3deg) scale(0.85);}
+  #card-weather{right:1%;top:50%;transform:rotate(-2deg) scale(0.85);}
+  nav{padding:0 20px;}
+  .feat-section,.dl-section{padding:64px 20px;}
+  footer{padding:24px 20px;flex-direction:column;align-items:flex-start;}
+  .dl-card{padding:40px 24px;}
+}
+@media(max-width:600px){
+  #card-todo,#card-weather{display:none;}
+  #card-clock{width:160px;font-size:0.85em;}
+  #card-pomodoro{width:160px;font-size:0.85em;}
+  h1.ch-headline{font-size:32px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-mark">🪟</div>
+    DeskLoom
+  </a>
+  <div class="nav-right">
+    <a href="#features" class="nav-link">Features</a>
+    <a href="https://github.com/suptaass/deskloom" target="_blank" class="nav-link">GitHub</a>
+    <button class="theme-toggle" id="themeToggle" title="Toggle theme">🌙</button>
+    <a href="#download" class="btn-nav">⬇ Download</a>
+  </div>
+</nav>
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!--  SCROLLYTELLING STORY                                         -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="story-wrapper" id="storyWrapper">
+<div class="story-canvas" id="storyCanvas">
+
+  <div class="canvas-light"></div>
+
+  <!-- ─ CARD: Clock ─ -->
+  <div class="wcard" id="card-clock">
+    <div class="wh">
+      <span class="wh-title">Clock</span>
+      <span class="wh-icon">🕐</span>
+    </div>
+    <div class="clock-time" id="live-clock">10:42</div>
+    <div class="clock-date">Wednesday, 3 May</div>
+    <div class="clock-locale">พุธ · ๓ พฤษภาคม</div>
+  </div>
+
+  <!-- ─ CARD: Todo ─ -->
+  <div class="wcard" id="card-todo">
+    <div class="wh">
+      <span class="wh-title">My Tasks</span>
+      <span class="wh-badge">3/5</span>
+    </div>
+    <div class="todo-meta">60% complete</div>
+    <div class="todo-progress-wrap">
+      <div class="todo-progress-bar" style="width:60%"></div>
+    </div>
+    <div class="todo-item">
+      <div class="todo-check done">✓</div>
+      <span class="todo-text done-text">Review PR #42</span>
+    </div>
+    <div class="todo-item">
+      <div class="todo-check done">✓</div>
+      <span class="todo-text done-text">Morning run</span>
+    </div>
+    <div class="todo-item">
+      <div class="todo-check done">✓</div>
+      <span class="todo-text done-text">Stand-up meeting</span>
+    </div>
+    <div class="todo-item">
+      <div class="todo-check open"></div>
+      <span class="todo-text">Read docs</span>
+    </div>
+    <div class="todo-item">
+      <div class="todo-check open"></div>
+      <span class="todo-text">Plan next sprint</span>
+    </div>
+  </div>
+
+  <!-- ─ CARD: Notes ─ -->
+  <div class="wcard" id="card-notes">
+    <div class="wh">
+      <span class="wh-title">Note</span>
+      <span class="wh-icon">📝</span>
+    </div>
+    <div class="note-body">Remember to check the API renewal before May 15th — auto-billing is off.</div>
+    <div class="note-divider"></div>
+    <div class="note-tag">Just now · Private</div>
+  </div>
+
+  <!-- ─ CARD: Habit ─ -->
+  <div class="wcard" id="card-habit">
+    <div class="wh">
+      <span class="wh-title">Habits</span>
+      <span class="wh-badge-gold wh-badge">Premium</span>
+    </div>
+    <div class="habit-item">
+      <div class="habit-left">🌅 <span>Morning</span></div>
+      <div class="habit-streak">🔥 7</div>
+    </div>
+    <div class="habit-dots" style="margin-bottom:8px;">
+      <div class="habit-dot filled"></div><div class="habit-dot filled"></div>
+      <div class="habit-dot filled"></div><div class="habit-dot filled"></div>
+      <div class="habit-dot filled"></div><div class="habit-dot miss"></div>
+      <div class="habit-dot filled"></div>
+    </div>
+    <div class="habit-item">
+      <div class="habit-left">💧 <span>Hydrate</span></div>
+      <div class="habit-streak">🔥 3</div>
+    </div>
+    <div class="habit-dots" style="margin-bottom:8px;">
+      <div class="habit-dot miss"></div><div class="habit-dot miss"></div>
+      <div class="habit-dot miss"></div><div class="habit-dot filled"></div>
+      <div class="habit-dot filled"></div><div class="habit-dot filled"></div>
+      <div class="habit-dot filled"></div>
+    </div>
+    <div class="habit-item">
+      <div class="habit-left">📚 <span>Reading</span></div>
+      <div class="habit-streak">🔥 12</div>
+    </div>
+    <div class="habit-dots">
+      <div class="habit-dot filled"></div><div class="habit-dot filled"></div>
+      <div class="habit-dot filled"></div><div class="habit-dot filled"></div>
+      <div class="habit-dot filled"></div><div class="habit-dot filled"></div>
+      <div class="habit-dot filled"></div>
+    </div>
+  </div>
+
+  <!-- ─ CARD: Pomodoro ─ -->
+  <div class="wcard" id="card-pomodoro">
+    <div class="wh">
+      <span class="wh-title">Pomodoro</span>
+      <span class="wh-badge-gold wh-badge">Premium</span>
+    </div>
+    <div class="pomodoro-dots">
+      <div class="pomodoro-dot done"></div>
+      <div class="pomodoro-dot active"></div>
+      <div class="pomodoro-dot empty"></div>
+      <div class="pomodoro-dot empty"></div>
+    </div>
+    <div class="pomodoro-ring">
+      <svg viewBox="0 0 72 72" width="72" height="72" fill="none">
+        <circle cx="36" cy="36" r="30" stroke="var(--divider)" stroke-width="4"/>
+        <circle cx="36" cy="36" r="30" stroke="var(--accent)" stroke-width="4"
+          stroke-dasharray="188.5" stroke-dashoffset="47" stroke-linecap="round"/>
+      </svg>
+      <span class="pomodoro-timer">24:58</span>
+    </div>
+    <div class="pomodoro-label">Session 2 of 4 · Focus</div>
+    <button class="pomodoro-btn">⏸ Pause</button>
+  </div>
+
+  <!-- ─ CARD: Weather ─ -->
+  <div class="wcard" id="card-weather">
+    <div class="wh">
+      <span class="wh-title">Weather</span>
+      <span class="wh-icon">🌤️</span>
+    </div>
+    <div class="weather-city">Bangkok · Thailand</div>
+    <div class="weather-main">
+      <div class="weather-temp">32°</div>
+      <div class="weather-icon-big">⛅</div>
+    </div>
+    <div class="weather-desc">Partly cloudy · Feels 35°</div>
+    <div class="weather-row">
+      <div class="weather-stat"><div class="weather-stat-val">72%</div><div class="weather-stat-lbl">Humidity</div></div>
+      <div class="weather-stat"><div class="weather-stat-val">14 km/h</div><div class="weather-stat-lbl">Wind</div></div>
+      <div class="weather-stat"><div class="weather-stat-val">29° / 36°</div><div class="weather-stat-lbl">Lo / Hi</div></div>
+    </div>
+  </div>
+
+  <!-- ─ CARD: Quick Links ─ -->
+  <div class="wcard" id="card-links">
+    <div class="wh">
+      <span class="wh-title">Quick Links</span>
+      <span class="wh-icon">⚡</span>
+    </div>
+    <div class="link-grid">
+      <div class="link-item"><span class="link-icon">🐙</span><span class="link-name">GitHub</span><span class="link-arrow">↗</span></div>
+      <div class="link-item"><span class="link-icon">📬</span><span class="link-name">Gmail</span><span class="link-arrow">↗</span></div>
+      <div class="link-item"><span class="link-icon">💬</span><span class="link-name">Discord</span><span class="link-arrow">↗</span></div>
+      <div class="link-item"><span class="link-icon">📋</span><span class="link-name">Notion</span><span class="link-arrow">↗</span></div>
+    </div>
+  </div>
+
+  <!-- ─ CARD: Theme ─ -->
+  <div class="wcard" id="card-theme">
+    <div class="wh">
+      <span class="wh-title">Appearance</span>
+      <span class="wh-icon">🎨</span>
+    </div>
+    <div class="theme-row">
+      <span class="theme-label">Dark mode</span>
+      <div class="theme-switch"><div class="theme-switch-knob"></div></div>
+    </div>
+    <div class="wh-title" style="margin-bottom:8px;">Accent color</div>
+    <div class="accent-row">
+      <div class="accent-dot sel" style="background:#6C8EF5;"></div>
+      <div class="accent-dot" style="background:#34d399;"></div>
+      <div class="accent-dot" style="background:#f472b6;"></div>
+      <div class="accent-dot" style="background:#fb923c;"></div>
+      <div class="accent-dot" style="background:#a78bfa;"></div>
+    </div>
+    <div class="wh-title" style="margin:10px 0 6px;">Opacity</div>
+    <div style="height:4px;background:var(--divider);border-radius:100px;position:relative;">
+      <div style="width:75%;height:100%;background:var(--accent);border-radius:100px;"></div>
+      <div style="width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid var(--card-bg);
+        position:absolute;top:50%;right:25%;transform:translate(50%,-50%);box-shadow:0 1px 4px rgba(0,0,0,0.2);"></div>
+    </div>
+  </div>
+
+
+  <!-- ─── STORY CENTER ─────────────────────────────────────────── -->
+  <div class="story-center" id="storyCenter">
+
+    <!-- Chapter 0: Hero -->
+    <div class="story-chapter active" data-ch="0">
+      <div class="ch-badge"><span class="ch-dot"></span>v0.6.0 — Free · Windows 10/11</div>
+      <h1 class="ch-headline">Your desktop,<br><em>beautifully</em><br>organized</h1>
+      <p class="ch-sub">Minimal widgets that live right on your desktop — no distractions, just what you need.</p>
+      <div class="ch-cta">
+        <a href="https://github.com/suptaass/deskloom/releases/download/v0.6.0/DeskLoom_0.6.0_x64-setup.exe" class="btn-primary">
+          ⬇ Download Free
+        </a>
+        <a href="https://github.com/suptaass/deskloom" target="_blank" class="btn-ghost">
+          View on GitHub
+        </a>
+      </div>
+    </div>
+
+    <!-- Chapter 1: Clock / Time -->
+    <div class="story-chapter" data-ch="1">
+      <div class="ch-badge"><span class="ch-dot"></span>Clock Widget</div>
+      <h1 class="ch-headline">Always know<br>what time<br><em>it is</em></h1>
+      <p class="ch-sub">12h/24h toggle, Thai and English locale. Your clock, always on your desktop — no alt-tab needed.</p>
+      <div class="ch-feature-list">
+        <span class="ch-pill">🕐 Clock</span>
+        <span class="ch-pill">📅 Thai locale</span>
+        <span class="ch-pill">🌏 12h / 24h</span>
+      </div>
+    </div>
+
+    <!-- Chapter 2: Tasks -->
+    <div class="story-chapter" data-ch="2">
+      <div class="ch-badge"><span class="ch-dot"></span>Todo · Habit Tracker</div>
+      <h1 class="ch-headline">Stay on top<br>of <em>everything</em><br>you do</h1>
+      <p class="ch-sub">Tasks, habits, and streaks — all visible on your desktop. Check things off without breaking your flow.</p>
+      <div class="ch-feature-list">
+        <span class="ch-pill">✅ Tasks</span>
+        <span class="ch-pill">📋 Habit streaks</span>
+        <span class="ch-pill">📊 Progress bar</span>
+      </div>
+    </div>
+
+    <!-- Chapter 3: Focus -->
+    <div class="story-chapter" data-ch="3">
+      <div class="ch-badge"><span class="ch-dot"></span>Pomodoro Timer · Premium</div>
+      <h1 class="ch-headline">Built for<br><em>deep work</em><br>and focus</h1>
+      <p class="ch-sub">The Pomodoro timer sits on your desktop, guiding your work and break cycles without interrupting your flow.</p>
+      <div class="ch-feature-list">
+        <span class="ch-pill">⏱️ Pomodoro</span>
+        <span class="ch-pill">🎯 Focus sessions</span>
+        <span class="ch-pill">☕ Break reminders</span>
+      </div>
+    </div>
+
+    <!-- Chapter 4: Weather -->
+    <div class="story-chapter" data-ch="4">
+      <div class="ch-badge"><span class="ch-dot"></span>Weather Widget</div>
+      <h1 class="ch-headline">Always know<br>what's <em>outside</em><br>your window</h1>
+      <p class="ch-sub">Live weather via Open-Meteo. No API key needed. Just your current city, always in sight.</p>
+      <div class="ch-feature-list">
+        <span class="ch-pill">🌤 Live weather</span>
+        <span class="ch-pill">📍 Auto location</span>
+        <span class="ch-pill">🔑 No API key</span>
+      </div>
+    </div>
+
+    <!-- Chapter 5: Customization -->
+    <div class="story-chapter" data-ch="5">
+      <div class="ch-badge"><span class="ch-dot"></span>Fully Customizable</div>
+      <h1 class="ch-headline">Made to be<br><em>entirely</em><br>yours</h1>
+      <p class="ch-sub">Dark/light theme, 8 accent colors, per-widget opacity, drag and resize. Your desktop, your rules.</p>
+      <div class="ch-cta">
+        <a href="https://github.com/suptaass/deskloom/releases/download/v0.6.0/DeskLoom_0.6.0_x64-setup.exe" class="btn-primary">
+          ⬇ Download Free
+        </a>
+      </div>
+    </div>
+
+  </div><!-- /story-center -->
+
+
+  <!-- Scroll hint -->
+  <div class="scroll-hint" id="scrollHint">
+    <div class="scroll-mouse"></div>
+    <span>Scroll to explore</span>
+  </div>
+
+  <!-- Chapter progress dots -->
+  <div class="ch-progress" id="chProgress">
+    <div class="ch-progress-dot active" data-target="0"></div>
+    <div class="ch-progress-dot" data-target="1"></div>
+    <div class="ch-progress-dot" data-target="2"></div>
+    <div class="ch-progress-dot" data-target="3"></div>
+    <div class="ch-progress-dot" data-target="4"></div>
+    <div class="ch-progress-dot" data-target="5"></div>
+  </div>
+
+</div><!-- /story-canvas -->
+</div><!-- /story-wrapper -->
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!--  BELOW STORY                                                  -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="below-story">
+
+  <!-- Features -->
+  <section class="feat-section" id="features">
+    <div class="feat-header fade-up">
+      <div class="feat-tag">All Features · ฟีเจอร์ทั้งหมด</div>
+      <h2>Everything on your desktop.<br/>Nothing in your way.</h2>
+      <p>ทุกอย่างที่คุณต้องการ อยู่แค่มองเห็น ไม่รบกวนการทำงาน</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-card fade-up">
+        <div class="feat-card-icon">🕐</div>
+        <h3>Clock Widget</h3>
+        <p>12h/24h toggle, Thai and English locale. Always on your desktop, always accurate.</p>
+      </div>
+      <div class="feat-card fade-up">
+        <div class="feat-card-icon">✅</div>
+        <h3>Todo Widget</h3>
+        <p>Add, complete, and delete tasks. Visual progress bar keeps you motivated all day.</p>
+      </div>
+      <div class="feat-card fade-up">
+        <div class="feat-card-icon">📝</div>
+        <h3>Notes Widget</h3>
+        <p>Quick sticky notes that live on your desktop. Create, edit, delete in seconds.</p>
+      </div>
+      <div class="feat-card fade-up">
+        <div class="feat-card-icon">⏱️</div>
+        <h3>Pomodoro <span class="feat-premium">Premium</span></h3>
+        <p>Work/break timer to keep focus sharp. Configurable session lengths and auto-start.</p>
+      </div>
+      <div class="feat-card fade-up">
+        <div class="feat-card-icon">📋</div>
+        <h3>Habit Tracker <span class="feat-premium">Premium</span></h3>
+        <p>Build daily habits and maintain streaks. See your consistency at a glance.</p>
+      </div>
+      <div class="feat-card fade-up">
+        <div class="feat-card-icon">🌤️</div>
+        <h3>Weather Widget</h3>
+        <p>Live weather via Open-Meteo. No API key needed — just your city, always visible.</p>
+      </div>
+      <div class="feat-card fade-up">
+        <div class="feat-card-icon">🔗</div>
+        <h3>Quick Links</h3>
+        <p>One-click URL launcher. Your most-used sites always one click away.</p>
+      </div>
+      <div class="feat-card fade-up">
+        <div class="feat-card-icon">🎨</div>
+        <h3>Full Customization</h3>
+        <p>Dark/light theme, 8 accent presets + custom picker, per-widget opacity and sizing.</p>
+      </div>
+      <div class="feat-card fade-up">
+        <div class="feat-card-icon">🖥️</div>
+        <h3>True OS Widgets</h3>
+        <p>Each widget is an independent system window. Drag, resize, stack, and pin freely.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="cap"></div>
+
+  <!-- Download -->
+  <section class="dl-section" id="download">
+    <div class="dl-card fade-up">
+      <h2>Start for free</h2>
+      <p class="dl-th">เริ่มใช้งานได้เลย ฟรี · ไม่ต้องสมัคร</p>
+      <p>No account. No telemetry. No clutter. Download, install, and your widgets are ready in seconds.</p>
+      <a href="https://github.com/suptaass/deskloom/releases/download/v0.6.0/DeskLoom_0.6.0_x64-setup.exe" class="btn-primary" style="margin:0 auto;">
+        ⬇ Download DeskLoom v0.6.0 — Free
+      </a>
+      <div class="dl-meta">
+        <div class="dl-meta-item">🪟 Windows 10 / 11 (64-bit)</div>
+        <div class="dl-meta-item">📦 ~5 MB installer</div>
+        <div class="dl-meta-item">🔒 100% local · No data sent</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-l">© 2026 DeskLoom · Built with Tauri + React</div>
+    <div class="footer-r">
+      <a href="https://github.com/suptaass/deskloom" target="_blank">GitHub</a>
+      <a href="https://github.com/suptaass/deskloom/releases" target="_blank">Releases</a>
+      <a href="https://github.com/suptaass/deskloom/issues" target="_blank">Issues</a>
+    </div>
+  </footer>
+
+</div><!-- /below-story -->
+
+
+<script>
+// ─── LIVE CLOCK ──────────────────────────────────────────────────
+function updateClock(){
+  const now=new Date();
+  const h=now.getHours().toString().padStart(2,'0');
+  const m=now.getMinutes().toString().padStart(2,'0');
+  const el=document.getElementById('live-clock');
+  if(el) el.textContent=`${h}:${m}`;
+}
+updateClock(); setInterval(updateClock,10000);
+
+// ─── DARK MODE TOGGLE ─────────────────────────────────────────────
+const html=document.documentElement;
+const toggleBtn=document.getElementById('themeToggle');
+toggleBtn.addEventListener('click',()=>{
+  const isDark=html.dataset.theme==='dark';
+  html.dataset.theme=isDark?'light':'dark';
+  toggleBtn.textContent=isDark?'🌙':'☀️';
+});
+
+// ─── SCROLLYTELLING ───────────────────────────────────────────────
+const CHAPTERS = 6;
+const wrapper  = document.getElementById('storyWrapper');
+const chapters = document.querySelectorAll('.story-chapter');
+const dots     = document.querySelectorAll('.ch-progress-dot');
+const scrollHint = document.getElementById('scrollHint');
+
+// card → which chapters it stars in (dimmed otherwise after ch0)
+const STARS = {
+  'card-clock':    [0,1],
+  'card-todo':     [0,2],
+  'card-notes':    [0,2],
+  'card-habit':    [0,2],
+  'card-pomodoro': [0,3],
+  'card-weather':  [0,4],
+  'card-links':    [0,5],
+  'card-theme':    [0,5],
+};
+
+let currentCh = 0;
+
+function setChapter(ch){
+  if(ch === currentCh) return;
+  currentCh = ch;
+
+  // update text chapters
+  chapters.forEach((el,i)=>el.classList.toggle('active',i===ch));
+
+  // update dots
+  dots.forEach((d,i)=>d.classList.toggle('active',i===ch));
+
+  // update cards
+  Object.entries(STARS).forEach(([id,stars])=>{
+    const card=document.getElementById(id);
+    if(!card) return;
+    if(ch===0){
+      card.classList.remove('dimmed','focused');
+    } else if(stars.includes(ch)){
+      card.classList.remove('dimmed');
+      card.classList.add('focused');
+    } else {
+      card.classList.add('dimmed');
+      card.classList.remove('focused');
+    }
+  });
+
+  // hide scroll hint after ch 0
+  scrollHint.classList.toggle('hidden', ch > 0);
+}
+
+function onScroll(){
+  const rect   = wrapper.getBoundingClientRect();
+  const total  = wrapper.offsetHeight - window.innerHeight;
+  const scrolled = -rect.top;
+  const progress = Math.max(0, Math.min(1, scrolled / total));
+  const ch     = Math.min(CHAPTERS-1, Math.floor(progress * CHAPTERS));
+  setChapter(ch);
+}
+
+window.addEventListener('scroll', onScroll, {passive:true});
+onScroll();
+
+// dot click → scroll to chapter
+dots.forEach(d=>{
+  d.addEventListener('click',()=>{
+    const target = parseInt(d.dataset.target);
+    const total  = wrapper.offsetHeight - window.innerHeight;
+    const y      = wrapper.offsetTop + (target / CHAPTERS) * total;
+    window.scrollTo({top:y, behavior:'smooth'});
+  });
+});
+
+// ─── FADE-UP on scroll ───────────────────────────────────────────
+const observer=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');observer.unobserve(e.target);}});
+},{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-up').forEach(el=>observer.observe(el));
+</script>
+</body>
+</html>
