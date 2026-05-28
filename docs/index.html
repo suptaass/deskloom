@@ -458,6 +458,51 @@ h1.ch-headline em{font-style:italic;color:var(--accent);}
   padding:2px 7px;border-radius:100px;margin-left:7px;vertical-align:middle;
 }
 
+/* Premium section */
+.premium-section{
+  padding:100px 40px;
+  text-align:center;
+}
+.premium-section-inner{max-width:1100px;margin:0 auto;}
+.premium-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:18px;margin-bottom:52px;text-align:left;
+}
+.premium-card{
+  background:var(--card-bg);border:1px solid rgba(245,158,11,0.28);
+  border-radius:var(--radius);padding:30px;
+  box-shadow:0 4px 20px rgba(245,158,11,0.07);
+  transition:all 0.25s;
+}
+.premium-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 10px 36px rgba(245,158,11,0.16);
+  border-color:rgba(245,158,11,0.45);
+}
+.premium-card-icon{
+  width:48px;height:48px;border-radius:13px;
+  background:rgba(245,158,11,0.12);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;margin-bottom:16px;
+}
+.premium-card h3{font-size:17px;font-weight:600;margin-bottom:8px;}
+.premium-card>p{font-size:14px;color:var(--text-sub);line-height:1.65;margin-bottom:14px;}
+.premium-card-features{list-style:none;font-size:13px;color:var(--text-sub);line-height:2;}
+.premium-card-features li::before{content:"✓  ";color:#d97706;font-weight:600;}
+.premium-cta{display:flex;flex-direction:column;align-items:center;gap:14px;}
+.premium-price{font-size:42px;font-weight:700;letter-spacing:-0.03em;color:var(--text);}
+.premium-price span{font-size:16px;font-weight:400;color:var(--text-sub);margin-left:4px;}
+.btn-premium{
+  display:inline-flex;align-items:center;gap:9px;
+  font-size:16px;font-weight:600;padding:15px 34px;border-radius:13px;
+  background:linear-gradient(135deg,#f59e0b,#d97706);
+  color:#fff;border:none;cursor:pointer;text-decoration:none;
+  box-shadow:0 0 32px rgba(245,158,11,0.38);
+  transition:opacity 0.2s,transform 0.15s;font-family:inherit;
+}
+.btn-premium:hover{opacity:0.9;transform:translateY(-2px);}
+.premium-note{font-size:12.5px;color:var(--text-dim);}
+
 /* Download section */
 .dl-section{padding:100px 40px;text-align:center;}
 .dl-card{
@@ -549,6 +594,7 @@ footer{
   </a>
   <div class="nav-right">
     <a href="#features" class="nav-link">Features</a>
+    <a href="#premium" class="nav-link" style="color:#d97706;font-weight:500;">✦ Premium</a>
     <a href="#getting-started" class="nav-link">Get Started</a>
     <a href="https://github.com/suptaass/deskloom" target="_blank" class="nav-link">GitHub</a>
     <button class="theme-toggle" id="themeToggle" title="Toggle theme">🌙</button>
@@ -948,6 +994,52 @@ footer{
       </div>
     </div>
   </section>
+
+  <div class="cap"></div>
+
+  <!-- Premium -->
+  <section class="premium-section" id="premium">
+    <div class="premium-section-inner">
+      <div class="feat-header fade-up" style="margin-bottom:52px;">
+        <div class="feat-tag" style="color:#d97706;">Premium · Unlock More</div>
+        <h2>Two widgets that change<br/>how you <em style="color:#d97706;font-style:italic;">work every day</em></h2>
+        <p>ซื้อครั้งเดียว ใช้ได้ตลอด — no subscription, no renewal</p>
+      </div>
+      <div class="premium-grid fade-up">
+        <div class="premium-card">
+          <div class="premium-card-icon">⏱️</div>
+          <h3>Pomodoro Timer</h3>
+          <p>A focus timer that lives right on your desktop — no switching apps to start a session.</p>
+          <ul class="premium-card-features">
+            <li>Customizable work &amp; break lengths</li>
+            <li>Auto-start next session</li>
+            <li>Session count display</li>
+            <li>Visual ring progress</li>
+          </ul>
+        </div>
+        <div class="premium-card">
+          <div class="premium-card-icon">📋</div>
+          <h3>Habit Tracker</h3>
+          <p>Track daily habits and maintain streaks — your consistency visible at a glance every day.</p>
+          <ul class="premium-card-features">
+            <li>Unlimited habits</li>
+            <li>7-day dot streak view</li>
+            <li>Fire streak counter</li>
+            <li>One-tap check-in</li>
+          </ul>
+        </div>
+      </div>
+      <div class="premium-cta fade-up">
+        <div class="premium-price">$9.99 <span>· one-time</span></div>
+        <a href="https://sutasiripa.gumroad.com/l/wqjgje" target="_blank" class="btn-premium">
+          ✦ Get Premium — $9.99
+        </a>
+        <p class="premium-note">License key delivered instantly via Gumroad · Enter in Settings → License</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="cap"></div>
 
   <!-- Download -->
   <section class="dl-section" id="download">
