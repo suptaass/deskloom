@@ -6,8 +6,7 @@ import { BaseDirectory } from "@tauri-apps/plugin-fs";
 const APP_DIR      = "com.deskloom.app";
 const LICENSE_FILE = `${APP_DIR}/license.json`;
 
-// Update this to the actual Gumroad product permalink once the product is live
-const GUMROAD_PRODUCT_PERMALINK = "deskloom";
+const GUMROAD_PRODUCT_PERMALINK = "wqjgje";
 
 export interface LicenseData {
   key:        string;
