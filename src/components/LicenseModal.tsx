@@ -209,7 +209,7 @@ const LicenseModal: React.FC<LicenseModalProps> = ({ onClose }) => {
                 onClick={() => {
                   // Opens system browser — requires shell:allow-open in capabilities
                   import("@tauri-apps/plugin-shell").then(({ open }) =>
-                    open("https://gum.co/deskloom")
+                    open("https://sutasiripa.gumroad.com/l/wqjgje")
                   );
                 }}
               >

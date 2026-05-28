@@ -6,7 +6,7 @@ import { BaseDirectory } from "@tauri-apps/plugin-fs";
 const APP_DIR      = "com.deskloom.app";
 const LICENSE_FILE = `${APP_DIR}/license.json`;
 
-const GUMROAD_PRODUCT_PERMALINK = "wqjgje";
+const GUMROAD_PRODUCT_ID = "L6fgighmsbOHFWnC2aDrag==";
 
 export interface LicenseData {
   key:        string;
@@ -69,7 +69,7 @@ export async function verifyLicense(licenseKey: string): Promise<VerifyResult> {
       method:  "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body:    new URLSearchParams({
-        product_permalink:    GUMROAD_PRODUCT_PERMALINK,
+        product_id:           GUMROAD_PRODUCT_ID,
         license_key:          licenseKey.trim(),
         increment_uses_count: "false",
       }),
