@@ -1,11 +1,11 @@
 {
-  "version": "v0.7.0",
-  "notes": "Settings panel redesign, improved Notes and Todo widgets, Gumroad Premium license system",
+  "version": "v0.7.1",
+  "notes": "Fix Gumroad license verification (product_id), add Premium section to landing page",
   "pub_date": "2026-05-28T00:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdG1sbzYwNDI0VzczQndTZnQzM3FKRzRkZmNZaUFSWnhIVmVFODNCcklHTGZ5dXd2dlkwTGJWQ0RVbWZicGVuQmZOU3hXcVN1TUljNTNQY3lqVGlFZHdRbkc4NC90aEFBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc5OTU1MDUwCWZpbGU6RGVza0xvb21fMC43LjBfeDY0LXNldHVwLmV4ZQp3ekhJbGRIQlZSMDFyU3Z2akxkeGNIYmpTaUVvYjN3NHo2VGU2Ty9kc2RwdndGbTNJT1dNbDJueWVJSy9iRHVZb1Z1OEMxL0dOS3Z2eW1YR2pyNENEUT09Cg==",
-      "url": "https://github.com/suptaass/deskloom/releases/download/v0.7.0/DeskLoom_0.7.0_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdG1sbzYwNDI0VzBhckxDMExXNDBlM3FhUUNxMElURGdnSWkzS0NWZjJlWHF5VUNrQWNBWDN5TUFjTVMzbkV4Tk5kOEV1Mm1iUnh3Q2ZlM2pYbWtFWkk3SUdIYi9QQ2drPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc5OTU5OTQyCWZpbGU6RGVza0xvb21fMC43LjFfeDY0LXNldHVwLmV4ZQpnOFA2bTVqUkk0ZlBhVXNTb00yK1ZPSzdsbE9GeERCRHVCZm5tdnYzUnpqZHNuc0ptY2txMm5VK2NRNHcvUG44VTJjU3BmM3ZQVUtyMmtqay9wSUJEdz09Cg==",
+      "url": "https://github.com/suptaass/deskloom/releases/download/v0.7.1/DeskLoom_0.7.1_x64-setup.exe"
     }
   }
 }
