@@ -91,6 +91,14 @@ nav{
   transition:all 0.2s;color:var(--text-sub);
 }
 .theme-toggle:hover{background:rgba(128,128,128,0.08);color:var(--text);}
+.lang-btn{
+  width:34px;height:34px;border-radius:8px;border:1px solid var(--divider);
+  background:transparent;cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.2s;
+}
+.lang-btn:hover{background:rgba(128,128,128,0.08);}
+.lang-btn.active{background:var(--accent-soft);border-color:rgba(108,142,245,0.3);}
 .btn-nav{
   font-size:13px;font-weight:500;padding:8px 18px;border-radius:9px;
   background:var(--accent);color:#fff;border:none;cursor:pointer;
@@ -598,6 +606,8 @@ footer{
     <a href="#getting-started" class="nav-link">Get Started</a>
     <a href="https://github.com/suptaass/deskloom" target="_blank" class="nav-link">GitHub</a>
     <button class="theme-toggle" id="themeToggle" title="Toggle theme">🌙</button>
+    <button class="lang-btn active" id="langEN" onclick="setLang('en')" title="English">🇬🇧</button>
+    <button class="lang-btn" id="langTH" onclick="setLang('th')" title="ภาษาไทย">🇹🇭</button>
     <a href="#download" class="btn-nav">⬇ Download</a>
   </div>
 </nav>
@@ -896,9 +906,9 @@ footer{
   <!-- Features -->
   <section class="feat-section" id="features">
     <div class="feat-header fade-up">
-      <div class="feat-tag">All Features · ฟีเจอร์ทั้งหมด</div>
-      <h2>Everything on your desktop.<br/>Nothing in your way.</h2>
-      <p>ทุกอย่างที่คุณต้องการ อยู่แค่มองเห็น ไม่รบกวนการทำงาน</p>
+      <div class="feat-tag" data-i18n="feat-tag">All Features</div>
+      <h2 data-i18n="feat-title">Everything on your desktop.<br/>Nothing in your way.</h2>
+      <p data-i18n="feat-sub">Everything you need, always in sight — never in your way.</p>
     </div>
     <div class="feat-grid">
       <div class="feat-card fade-up">
@@ -954,14 +964,14 @@ footer{
   <!-- Installation & Usage Guide -->
   <section class="guide-section" id="getting-started">
     <div class="guide-header fade-up">
-      <h2>How to Get Started · เริ่มต้นใช้งานทันที</h2>
-      <p>Three simple steps to get DeskLoom running and customize your desktop widgets.</p>
+      <h2 data-i18n="guide-title">How to Get Started</h2>
+      <p data-i18n="guide-sub">Three simple steps to get DeskLoom running and customize your desktop widgets.</p>
     </div>
 
     <div class="guide-grid">
       <!-- Installation Card -->
       <div class="guide-card fade-up">
-        <h3><span class="guide-icon">📥</span> Installation (ขั้นตอนการติดตั้ง)</h3>
+        <h3 data-i18n="install-title"><span class="guide-icon">📥</span> Installation</h3>
         <ol>
           <li><strong>Download</strong> the installer from below</li>
           <li><strong>Run the .exe file</strong> — if Windows shows a warning, click <strong>"More info"</strong> → <strong>"Run anyway"</strong><br/><em style="color:var(--text-dim);">This is normal for apps from the internet</em></li>
@@ -972,7 +982,7 @@ footer{
 
       <!-- First Run Card -->
       <div class="guide-card fade-up">
-        <h3><span class="guide-icon">🎯</span> First Run (การใช้งานครั้งแรก)</h3>
+        <h3 data-i18n="firstrun-title"><span class="guide-icon">🎯</span> First Run</h3>
         <ol>
           <li>Look for the <strong>DeskLoom icon in system tray</strong> (bottom-right corner)</li>
           <li><strong>Click the icon</strong> to open Settings</li>
@@ -983,7 +993,7 @@ footer{
 
       <!-- Quick Tips Card -->
       <div class="guide-card fade-up">
-        <h3><span class="guide-icon">⚡</span> Quick Tips (เคล็ดลับ)</h3>
+        <h3 data-i18n="tips-title"><span class="guide-icon">⚡</span> Quick Tips</h3>
         <ul>
           <li><strong>Drag widget header</strong> to move it around</li>
           <li><strong>Drag edges/corners</strong> to resize</li>
@@ -1001,9 +1011,9 @@ footer{
   <section class="premium-section" id="premium">
     <div class="premium-section-inner">
       <div class="feat-header fade-up" style="margin-bottom:52px;">
-        <div class="feat-tag" style="color:#d97706;">Premium · Unlock More</div>
-        <h2>Two widgets that change<br/>how you <em style="color:#d97706;font-style:italic;">work every day</em></h2>
-        <p>ซื้อครั้งเดียว ใช้ได้ตลอด — no subscription, no renewal</p>
+        <div class="feat-tag" style="color:#d97706;" data-i18n="premium-tag">Premium · Unlock More</div>
+        <h2 data-i18n="premium-title">Two widgets that change<br/>how you <em style="color:#d97706;font-style:italic;">work every day</em></h2>
+        <p data-i18n="premium-sub">One-time purchase, yours forever — no subscription, no renewal.</p>
       </div>
       <div class="premium-grid fade-up">
         <div class="premium-card">
@@ -1034,7 +1044,7 @@ footer{
         <a href="https://sutasiripa.gumroad.com/l/wqjgje" target="_blank" class="btn-premium">
           ✦ Get Premium — $9.99
         </a>
-        <p class="premium-note">License key delivered instantly via Gumroad · Enter in Settings → License</p>
+        <p class="premium-note" data-i18n="premium-note">License key delivered instantly via Gumroad · Enter in Settings → License</p>
       </div>
     </div>
   </section>
@@ -1044,9 +1054,9 @@ footer{
   <!-- Download -->
   <section class="dl-section" id="download">
     <div class="dl-card fade-up">
-      <h2>Start for free</h2>
-      <p class="dl-th">เริ่มใช้งานได้เลย ฟรี · ไม่ต้องสมัคร</p>
-      <p>No account. No telemetry. No clutter. Download, install, and your widgets are ready in seconds.</p>
+      <h2 data-i18n="dl-title">Start for free</h2>
+      <p class="dl-th" data-i18n="dl-sub">No account needed · Free forever</p>
+      <p data-i18n="dl-body">No account. No telemetry. No clutter. Download, install, and your widgets are ready in seconds.</p>
       <a href="https://github.com/suptaass/deskloom/releases/download/v0.7.0/DeskLoom_0.7.0_x64-setup.exe" class="btn-primary" style="margin:0 auto;">
         ⬇ Download DeskLoom v0.7.0 — Free
       </a>
@@ -1168,6 +1178,38 @@ const observer=new IntersectionObserver(entries=>{
   entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');observer.unobserve(e.target);}});
 },{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
 document.querySelectorAll('.fade-up').forEach(el=>observer.observe(el));
+
+// ─── i18n ─────────────────────────────────────────────────────────
+const TH = {
+  'feat-tag':       'ฟีเจอร์ทั้งหมด',
+  'feat-title':     'ทุกอย่างอยู่บนหน้าจอ<br/>ไม่มีอะไรมาขวาง',
+  'feat-sub':       'ทุกอย่างที่คุณต้องการ อยู่แค่มองเห็น — ไม่รบกวนการทำงาน',
+  'guide-title':    'วิธีเริ่มต้นใช้งาน',
+  'guide-sub':      'สามขั้นตอนง่ายๆ เพื่อตั้งค่า DeskLoom และปรับแต่ง widget ของคุณ',
+  'install-title':  '<span class="guide-icon">📥</span> การติดตั้ง',
+  'firstrun-title': '<span class="guide-icon">🎯</span> การใช้งานครั้งแรก',
+  'tips-title':     '<span class="guide-icon">⚡</span> เคล็ดลับ',
+  'premium-tag':    'Premium · ปลดล็อกเพิ่มเติม',
+  'premium-title':  'สอง widget ที่เปลี่ยนวิธีคุณ<br/><em style="color:#d97706;font-style:italic;">ทำงานทุกวัน</em>',
+  'premium-sub':    'ซื้อครั้งเดียว ใช้ได้ตลอด — ไม่มี subscription ไม่ต้องต่ออายุ',
+  'premium-note':   'รับ license key ทันทีผ่าน Gumroad · กรอกใน Settings → License',
+  'dl-title':       'เริ่มใช้งานได้เลย ฟรี',
+  'dl-sub':         'ไม่ต้องสมัคร · ใช้ได้ฟรีตลอด',
+  'dl-body':        'ไม่ต้องสมัคร ไม่มีการเก็บข้อมูล ดาวน์โหลดแล้ว widget พร้อมใช้งานภายในไม่กี่วินาที',
+};
+
+function setLang(lang){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    if(!el.dataset.en) el.dataset.en = el.innerHTML;
+    el.innerHTML = lang==='th' ? (TH[el.dataset.i18n] || el.dataset.en) : el.dataset.en;
+  });
+  document.getElementById('langEN').classList.toggle('active', lang==='en');
+  document.getElementById('langTH').classList.toggle('active', lang==='th');
+  localStorage.setItem('deskloom-lang', lang);
+}
+
+const _savedLang = localStorage.getItem('deskloom-lang');
+if(_savedLang==='th') setLang('th');
 </script>
 </body>
 </html>
