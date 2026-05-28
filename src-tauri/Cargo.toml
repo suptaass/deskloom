@@ -1,6 +1,6 @@
 [package]
 name = "deskloom"
-version = "0.7.0"
+version = "0.7.1"
 description = "A Desktop Widget App"
 authors = []
 edition = "2021"
