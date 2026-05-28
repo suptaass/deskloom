@@ -1,6 +1,6 @@
 {
   "productName": "DeskLoom",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "identifier": "com.deskloom.app",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -55,7 +55,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

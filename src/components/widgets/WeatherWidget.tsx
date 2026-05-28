@@ -65,6 +65,16 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ widget, onUpdateData }) =
     }
   }, []);
 
+  const saveLocation = useCallback(
+    async (cityName: string, lat: number, lon: number) => {
+      onUpdateData(widget.id, { ...widget.data, cityName, lat, lon });
+      setCityInput(cityName);
+      setIsEditing(false);
+      await fetchWeather(lat, lon);
+    },
+    [fetchWeather, onUpdateData, widget.data, widget.id]
+  );
+
   const handleSearch = useCallback(async () => {
     const trimmed = cityInput.trim();
     if (!trimmed) return;
@@ -81,16 +91,35 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ widget, onUpdateData }) =
         return;
       }
       const { latitude, longitude, name } = json.results[0];
-      onUpdateData(widget.id, { ...widget.data, cityName: name, lat: latitude, lon: longitude });
-      setCityInput(name);
-      setIsEditing(false);
-      await fetchWeather(latitude, longitude);
+      await saveLocation(name, latitude, longitude);
     } catch (e) {
       console.error("[Weather] geocode failed:", e);
       setError("Geocoding failed. Try again.");
       setIsLoading(false);
     }
-  }, [cityInput, widget.id, widget.data, onUpdateData, fetchWeather]);
+  }, [cityInput, saveLocation]);
+
+  const handleUseCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setError("Current location is not available on this device.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        void saveLocation("Current location", latitude, longitude);
+      },
+      (locationError) => {
+        console.error("[Weather] current location failed:", locationError);
+        setError("Location permission was blocked. You can type a city instead.");
+        setIsLoading(false);
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 10 * 60 * 1000 }
+    );
+  }, [saveLocation]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (saved.lat && saved.lon) { void fetchWeather(saved.lat, saved.lon); } }, []);
@@ -156,6 +185,13 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ widget, onUpdateData }) =
               {isLoading ? "…" : "Go"}
             </button>
           </div>
+          <button
+            style={{ ...btnStyle, width: "100%" }}
+            onClick={handleUseCurrentLocation}
+            disabled={isLoading}
+          >
+            Use current location
+          </button>
           {error && <p style={{ fontSize: "11px", color: "var(--accent-red)" }}>{error}</p>}
         </div>
       </div>

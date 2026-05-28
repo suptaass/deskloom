@@ -70,6 +70,7 @@ const WidgetContainer: React.FC<WidgetContainerProps> = ({
         target.tagName === "BUTTON"   ||
         target.tagName === "SELECT"
       ) return;
+      if (target.closest("[data-widget-interactive='true']")) return;
       if (target.closest("[data-resize-handle]")) return;
 
       e.preventDefault();
@@ -190,7 +191,7 @@ const WidgetContainer: React.FC<WidgetContainerProps> = ({
   function renderContent() {
     const { onClockConfigChange } = widgetCallbacks;
     const {
-      onAddTodo, onToggleTodo, onDeleteTodo, onClearCompleted,
+      onAddTodo, onToggleTodo, onUpdateTodo, onDeleteTodo, onClearCompleted,
       onAddNote, onUpdateNote, onDeleteNote,
       onUpdateWidgetData,
     } = contentCallbacks;
@@ -209,6 +210,7 @@ const WidgetContainer: React.FC<WidgetContainerProps> = ({
             widget={widget}
             onAdd={(text) => onAddTodo(widget.id, text)}
             onToggle={(id) => onToggleTodo(widget.id, id)}
+            onUpdate={(id, changes) => onUpdateTodo(widget.id, id, changes)}
             onDelete={(id) => onDeleteTodo(widget.id, id)}
             onClearCompleted={() => onClearCompleted(widget.id)}
           />

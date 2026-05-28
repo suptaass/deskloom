@@ -86,12 +86,8 @@ export function useWidgetWindowSync(
           // ── Visibility: hide/show window เมื่อ isVisible เปลี่ยน ─────────────
           // ครั้งแรก (prevVisible = undefined): WidgetWindow handle show เอง
           // ครั้งถัดไป: เราควบคุม — prevVisible เปลี่ยน → call win.hide()/win.show()
-          const prevVisible = prevVisibilityRef.current.get(label);
-          const nowVisible  = widget.isVisible;
-          if (prevVisible !== undefined && prevVisible !== nowVisible) {
-            if (nowVisible) await win.show();
-            else            await win.hide();
-          }
+          const nowVisible = widget.isVisible;
+          if (nowVisible) await win.show();
           prevVisibilityRef.current.set(label, nowVisible);
         } catch {
           // ignore
@@ -245,7 +241,13 @@ export function useWidgetWindowSync(
     const prevIds    = prevWidgetIdsRef.current;
 
     widgets.forEach((w) => {
-      if (!prevIds.has(w.id) && w.isVisible) void createWidgetWindow(w);
+      const label = `widget-${w.id}`;
+      if (w.isVisible && (!prevIds.has(w.id) || !windowRegistry.current.has(label))) {
+        void createWidgetWindow(w);
+      }
+      if (!w.isVisible && windowRegistry.current.has(label)) {
+        void destroyWidgetWindow(w.id);
+      }
     });
 
     prevIds.forEach((id) => {

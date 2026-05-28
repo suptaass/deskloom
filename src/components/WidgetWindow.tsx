@@ -14,6 +14,8 @@ import CalendarWidget     from "./widgets/CalendarWidget";
 import WeatherWidget      from "./widgets/WeatherWidget";
 import PomodoroWidget     from "./widgets/PomodoroWidget";
 import HabitTrackerWidget from "./widgets/HabitTrackerWidget";
+import { getRegistryEntry } from "../registry/widgetRegistry";
+import { createEmptyNote } from "../utils/notes";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -78,7 +80,7 @@ const WidgetWindow: React.FC<WidgetWindowProps> = ({ widgetId }) => {
       setAccentColor(ac);
       setFontSize(fs);
       setStackSiblings(ss ?? []);
-      if (!hasShownRef.current) {
+      if (!hasShownRef.current && w.isVisible) {
         hasShownRef.current = true;
         void win.show();
       }
@@ -114,6 +116,7 @@ const WidgetWindow: React.FC<WidgetWindowProps> = ({ widgetId }) => {
       target.tagName === "BUTTON"   ||
       target.tagName === "SELECT"
     ) return;
+    if (target.closest("[data-widget-interactive='true']")) return;
     if (target.closest("[data-resize-handle]")) return;
     e.preventDefault();
     getCurrentWindow().startDragging();
@@ -217,7 +220,15 @@ const WidgetWindow: React.FC<WidgetWindowProps> = ({ widgetId }) => {
                 changes: {
                   todoItems: [
                     ...widget.todoItems,
-                    { id: crypto.randomUUID(), text: text.trim(), completed: false, createdAt: Date.now() },
+                    {
+                      id: crypto.randomUUID(),
+                      text: text.trim(),
+                      completed: false,
+                      createdAt: Date.now(),
+                      updatedAt: Date.now(),
+                      dueDate: null,
+                      note: "",
+                    },
                   ],
                 },
               });
@@ -228,6 +239,18 @@ const WidgetWindow: React.FC<WidgetWindowProps> = ({ widgetId }) => {
                 changes: {
                   todoItems: widget.todoItems.map((item) =>
                     item.id === todoId ? { ...item, completed: !item.completed } : item
+                  ),
+                },
+              });
+            }}
+            onUpdate={(todoId, changes) => {
+              emit("widget:data-change", {
+                id: widget.id,
+                changes: {
+                  todoItems: widget.todoItems.map((item) =>
+                    item.id === todoId
+                      ? { ...item, ...changes, updatedAt: Date.now() }
+                      : item
                   ),
                 },
               });
@@ -260,7 +283,7 @@ const WidgetWindow: React.FC<WidgetWindowProps> = ({ widgetId }) => {
                 changes: {
                   notes: [
                     ...widget.notes,
-                    { id: crypto.randomUUID(), title: "Untitled", content: "", createdAt: Date.now(), updatedAt: Date.now() },
+                    createEmptyNote(),
                   ],
                 },
               });
@@ -336,6 +359,13 @@ const WidgetWindow: React.FC<WidgetWindowProps> = ({ widgetId }) => {
     ? [...stackSiblings, { id: widgetId, label: getTabLabel(widget), stackOrder: widget.stack.stackOrder }]
         .sort((a, b) => a.stackOrder - b.stackOrder)
     : [];
+  const baseFontSize = FONT_SIZE_MAP[fontSize];
+  const baseFontSizeNumber = Number.parseInt(baseFontSize, 10);
+  const registryEntry = getRegistryEntry(widget.type);
+  const widthScale = widget.size.width / registryEntry.defaultSize.width;
+  const heightScale = widget.size.height / registryEntry.defaultSize.height;
+  const widgetScale = Math.min(1, Math.max(0.78, Math.min(widthScale, heightScale)));
+  const scaledFontSize = `${Math.max(10, Math.round(baseFontSizeNumber * widgetScale))}px`;
 
   return (
     <div
@@ -347,10 +377,11 @@ const WidgetWindow: React.FC<WidgetWindowProps> = ({ widgetId }) => {
         opacity:    widget.opacity,
         cursor:     widget.isLocked ? "default" : "grab",
         userSelect: "none",
-        fontSize:   FONT_SIZE_MAP[fontSize],
+        fontSize:   scaledFontSize,
         // CSS variables สำหรับ theme + font size (ส่งต่อให้ widget components)
         ["--accent-color"   as string]: accentColor,
-        ["--font-size-base" as string]: FONT_SIZE_MAP[fontSize],
+        ["--font-size-base" as string]: scaledFontSize,
+        ["--widget-ui-scale" as string]: widgetScale.toString(),
       }}
       data-theme={theme}
     >

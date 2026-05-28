@@ -20,6 +20,7 @@ import { checkCondition } from "./utils/condition";
 import { getRegistryEntry, getAddableEntries, WidgetType } from "./registry/widgetRegistry";
 import { Widget, WidgetCondition } from "./types/widget";
 import { useLicenseStore } from "./store/licenseStore";
+import { createPlainTextNote } from "./utils/notes";
 
 const FONT_SIZE_MAP: Record<"small" | "medium" | "large", string> = {
   small: "12px",
@@ -87,7 +88,6 @@ const App: React.FC = () => {
   const updateWidgetSize     = useAppStore((state) => state.updateWidgetSize);
   const resetLayout          = useAppStore((state) => state.resetLayout);
   const toggleFocusMode      = useAppStore((state) => state.toggleFocusMode);
-  const weatherApiKey        = useAppStore((state) => state.weatherApiKey);
 
   const loadLicenseFromDisk = useLicenseStore((s) => s.loadFromDisk);
 
@@ -166,14 +166,14 @@ const App: React.FC = () => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
       try {
-        await saveState({ version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop, weatherApiKey });
+        await saveState({ version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop });
       } catch (error) {
         console.error("[App] saveState failed:", error);
         setToastMessage({ msg: "Failed to save data. Please check app permissions.", id: Date.now() });
       }
     }, 500);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop, weatherApiKey, isLoaded]);
+  }, [version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop, isLoaded]);
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -263,11 +263,22 @@ const App: React.FC = () => {
         }
         if (targetType === "todo") {
           updateWidgetRef.current(target.id, {
-            todoItems: [...target.todoItems, { id: crypto.randomUUID(), text: text.trim(), completed: false, createdAt: Date.now() }],
+            todoItems: [
+              ...target.todoItems,
+              {
+                id: crypto.randomUUID(),
+                text: text.trim(),
+                completed: false,
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+                dueDate: null,
+                note: "",
+              },
+            ],
           });
         } else {
           updateWidgetRef.current(target.id, {
-            notes: [...target.notes, { id: crypto.randomUUID(), title: text.trim().slice(0, 50), content: text.trim(), createdAt: Date.now(), updatedAt: Date.now() }],
+            notes: [...target.notes, createPlainTextNote(text.trim().slice(0, 50), text.trim())],
           });
         }
         setToastMessage({ msg: `✓ Added to ${target.label}`, id: Date.now() });
@@ -557,13 +568,13 @@ const App: React.FC = () => {
         filters: [{ name: "DeskLoom Layout", extensions: ["deskloom"] }],
       });
       if (!filePath) return;
-      await writeLayoutFile(filePath, { version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop, weatherApiKey });
+      await writeLayoutFile(filePath, { version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop });
       setToastMessage({ msg: "✓ Layout exported", id: Date.now() });
     } catch (e) {
       console.error("[App] exportLayout failed:", e);
       setToastMessage({ msg: "Failed to export layout.", id: Date.now() });
     }
-  }, [version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop, weatherApiKey]);
+  }, [version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop]);
 
   const handleImportLayout = useCallback(async () => {
     try {

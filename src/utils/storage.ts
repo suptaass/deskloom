@@ -8,8 +8,9 @@ import {
   exists,
 } from "@tauri-apps/plugin-fs";
 import { BaseDirectory } from "@tauri-apps/plugin-fs";
-import { AppState, Widget, TodoItem, Note, WidgetCondition, WidgetStack } from "../types/widget";
+import { AppState, Widget, TodoItem, Note, NoteDocument, WidgetCondition, WidgetStack } from "../types/widget";
 import { isValidWidgetType, WidgetType } from "../registry/widgetRegistry";
+import { createPlainTextNoteDocument, normalizeNoteDocument, NOTE_DOCUMENT_VERSION } from "./notes";
 
 const APP_DIR    = "com.deskloom.app";
 const STATE_FILE = `${APP_DIR}/state.json`;
@@ -31,14 +32,29 @@ function migrateTodoItem(raw: Record<string, unknown>): TodoItem {
     text:      typeof raw.text === "string"       ? raw.text      : "",
     completed: typeof raw.completed === "boolean" ? raw.completed : false,
     createdAt: typeof raw.createdAt === "number"  ? raw.createdAt : Date.now(),
+    updatedAt: typeof raw.updatedAt === "number"  ? raw.updatedAt : Date.now(),
+    dueDate:
+      typeof raw.dueDate === "string" && raw.dueDate.trim()
+        ? raw.dueDate
+        : null,
+    note:      typeof raw.note === "string"       ? raw.note      : "",
   };
 }
 
 function migrateNote(raw: Record<string, unknown>): Note {
+  const document: NoteDocument =
+    raw.document !== null && typeof raw.document === "object" && !Array.isArray(raw.document)
+      ? normalizeNoteDocument(raw.document)
+      : createPlainTextNoteDocument(typeof raw.content === "string" ? raw.content : "");
+
   return {
     id:        typeof raw.id === "string"        ? raw.id        : crypto.randomUUID(),
     title:     typeof raw.title === "string"     ? raw.title     : "Untitled",
-    content:   typeof raw.content === "string"   ? raw.content   : "",
+    documentVersion:
+      typeof raw.documentVersion === "number" && raw.documentVersion > 0
+        ? raw.documentVersion
+        : NOTE_DOCUMENT_VERSION,
+    document,
     createdAt: typeof raw.createdAt === "number" ? raw.createdAt : Date.now(),
     updatedAt: typeof raw.updatedAt === "number" ? raw.updatedAt : Date.now(),
   };
@@ -221,13 +237,10 @@ function parseAppState(parsed: Record<string, unknown>): AppState {
   const alwaysOnTop: boolean =
     typeof parsed.alwaysOnTop === "boolean" ? parsed.alwaysOnTop : false;
 
-  const weatherApiKey: string =
-    typeof parsed.weatherApiKey === "string" ? parsed.weatherApiKey : "";
-
   const version: number =
     typeof parsed.version === "number" ? parsed.version : 0;
 
-  return { version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop, weatherApiKey };
+  return { version, widgets, theme, accentColor, fontSize, autostart, alwaysOnTop };
 }
 
 export async function loadState(): Promise<AppState | null> {

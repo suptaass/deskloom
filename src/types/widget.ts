@@ -25,12 +25,57 @@ export interface TodoItem {
   text:      string;
   completed: boolean;
   createdAt: number;
+  updatedAt: number;
+  dueDate:   string | null;
+  note:      string;
+}
+
+export interface RichTextSpan {
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  link?: string;
+}
+
+export interface NoteParagraphBlock {
+  id: string;
+  type: "paragraph";
+  text: RichTextSpan[];
+}
+
+export interface NoteBulletListItem {
+  id: string;
+  text: RichTextSpan[];
+}
+
+export interface NoteBulletListBlock {
+  id: string;
+  type: "bullet_list";
+  items: NoteBulletListItem[];
+}
+
+export interface NoteImageBlock {
+  id: string;
+  type: "image";
+  src: string;
+  alt: string;
+  caption: RichTextSpan[];
+}
+
+export type NoteBlock =
+  | NoteParagraphBlock
+  | NoteBulletListBlock
+  | NoteImageBlock;
+
+export interface NoteDocument {
+  blocks: NoteBlock[];
 }
 
 export interface Note {
   id:        string;
   title:     string;
-  content:   string;
+  documentVersion: number;
+  document:  NoteDocument;
   createdAt: number;
   updatedAt: number;
 }
@@ -62,5 +107,4 @@ export interface AppState {
   fontSize:      "small" | "medium" | "large";
   autostart:     boolean;
   alwaysOnTop:   boolean;
-  weatherApiKey: string;
 }

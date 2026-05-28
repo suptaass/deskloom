@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { AppState, Widget } from "../types/widget";
+import { createPlainTextNoteDocument, NOTE_DOCUMENT_VERSION } from "../utils/notes";
 
 const DEFAULT_WIDGET_IDS = ["clock-1", "todo-1", "notes-1"];
 
@@ -18,11 +19,11 @@ export const DEFAULT_WIDGETS: Widget[] = [
     notes: [],
     opacity: 1,
     data: {},
-    condition:            null,
-    stack:                { stackId: null, stackOrder: 0 },
+    condition: null,
+    stack: { stackId: null, stackOrder: 0 },
     alwaysOnTopPerWidget: false,
-    clickThrough:         false,
-    monitorName:          null,
+    clickThrough: false,
+    monitorName: null,
   },
   {
     id: "todo-1",
@@ -33,19 +34,19 @@ export const DEFAULT_WIDGETS: Widget[] = [
     isLocked: false,
     label: "My Tasks",
     todoItems: [
-      { id: "t-1", text: "Review Q2 project proposal",   completed: true,  createdAt: 1700000000000 },
-      { id: "t-2", text: "Send follow-up email to client", completed: false, createdAt: 1700000000001 },
-      { id: "t-3", text: "Prepare slides for Friday meeting", completed: false, createdAt: 1700000000002 },
-      { id: "t-4", text: "Book dentist appointment",     completed: false, createdAt: 1700000000003 },
+      { id: "t-1", text: "Review Q2 project proposal", completed: true, createdAt: 1700000000000, updatedAt: 1700000000000, dueDate: null, note: "" },
+      { id: "t-2", text: "Send follow-up email to client", completed: false, createdAt: 1700000000001, updatedAt: 1700000000001, dueDate: null, note: "" },
+      { id: "t-3", text: "Prepare slides for Friday meeting", completed: false, createdAt: 1700000000002, updatedAt: 1700000000002, dueDate: null, note: "" },
+      { id: "t-4", text: "Book dentist appointment", completed: false, createdAt: 1700000000003, updatedAt: 1700000000003, dueDate: null, note: "" },
     ],
     notes: [],
     opacity: 1,
     data: {},
-    condition:            null,
-    stack:                { stackId: null, stackOrder: 0 },
+    condition: null,
+    stack: { stackId: null, stackOrder: 0 },
     alwaysOnTopPerWidget: false,
-    clickThrough:         false,
-    monitorName:          null,
+    clickThrough: false,
+    monitorName: null,
   },
   {
     id: "notes-1",
@@ -57,50 +58,62 @@ export const DEFAULT_WIDGETS: Widget[] = [
     label: "My Notes",
     todoItems: [],
     notes: [
-      { id: "n-1", title: "Meeting Notes — Apr 26", content: "Discuss roadmap priorities\nConfirm budget with finance\nAssign owners by EOD", createdAt: 1700000000000, updatedAt: 1700000000000 },
-      { id: "n-2", title: "Ideas",                  content: "Automate weekly report\nTry Pomodoro for deep work blocks", createdAt: 1700000000001, updatedAt: 1700000000001 },
+      {
+        id: "n-1",
+        title: "Meeting Notes - Apr 26",
+        documentVersion: NOTE_DOCUMENT_VERSION,
+        document: createPlainTextNoteDocument("Discuss roadmap priorities\nConfirm budget with finance\nAssign owners by EOD"),
+        createdAt: 1700000000000,
+        updatedAt: 1700000000000,
+      },
+      {
+        id: "n-2",
+        title: "Ideas",
+        documentVersion: NOTE_DOCUMENT_VERSION,
+        document: createPlainTextNoteDocument("Automate weekly report\nTry Pomodoro for deep work blocks"),
+        createdAt: 1700000000001,
+        updatedAt: 1700000000001,
+      },
     ],
     opacity: 1,
     data: {},
-    condition:            null,
-    stack:                { stackId: null, stackOrder: 0 },
+    condition: null,
+    stack: { stackId: null, stackOrder: 0 },
     alwaysOnTopPerWidget: false,
-    clickThrough:         false,
-    monitorName:          null,
+    clickThrough: false,
+    monitorName: null,
   },
 ];
 
 interface AppStore extends AppState {
-  isFocusMode:           boolean;
-  setWidgets:            (widgets: Widget[]) => void;
-  addWidget:             (widget: Widget) => void;
-  updateWidget:          (id: string, changes: Partial<Widget>) => void;
-  removeWidget:          (id: string) => void;
-  updateWidgetPosition:  (id: string, position: { x: number; y: number }) => void;
-  updateWidgetSize:      (id: string, size: { width: number; height: number }) => void;
-  setTheme:              (theme: "dark" | "light") => void;
-  setAccentColor:        (color: string) => void;
-  setFontSize:           (size: "small" | "medium" | "large") => void;
-  setOpacity:            (id: string, opacity: number) => void;
-  setAlwaysOnTop:        (value: boolean) => void;
-  setAutostart:          (value: boolean) => void;
-  setClickThrough:       (id: string, value: boolean) => void;
-  setWidgetMonitor:      (id: string, name: string | null) => void;
-  resetLayout:           () => void;
-  toggleFocusMode:       () => void;
-  setWeatherApiKey:      (key: string) => void;
+  isFocusMode: boolean;
+  setWidgets: (widgets: Widget[]) => void;
+  addWidget: (widget: Widget) => void;
+  updateWidget: (id: string, changes: Partial<Widget>) => void;
+  removeWidget: (id: string) => void;
+  updateWidgetPosition: (id: string, position: { x: number; y: number }) => void;
+  updateWidgetSize: (id: string, size: { width: number; height: number }) => void;
+  setTheme: (theme: "dark" | "light") => void;
+  setAccentColor: (color: string) => void;
+  setFontSize: (size: "small" | "medium" | "large") => void;
+  setOpacity: (id: string, opacity: number) => void;
+  setAlwaysOnTop: (value: boolean) => void;
+  setAutostart: (value: boolean) => void;
+  setClickThrough: (id: string, value: boolean) => void;
+  setWidgetMonitor: (id: string, name: string | null) => void;
+  resetLayout: () => void;
+  toggleFocusMode: () => void;
 }
 
 export const useAppStore = create<AppStore>((set) => ({
-  version:       10,
-  widgets:       DEFAULT_WIDGETS,
-  theme:         "light",
-  accentColor:   "#6C8EF5",
-  fontSize:      "medium",
-  autostart:     false,
-  alwaysOnTop:   false,
-  isFocusMode:   false,
-  weatherApiKey: "",
+  version: 11,
+  widgets: DEFAULT_WIDGETS,
+  theme: "light",
+  accentColor: "#6C8EF5",
+  fontSize: "medium",
+  autostart: false,
+  alwaysOnTop: false,
+  isFocusMode: false,
 
   setWidgets: (widgets) => set({ widgets }),
 
@@ -109,7 +122,7 @@ export const useAppStore = create<AppStore>((set) => ({
 
   updateWidget: (id, changes) =>
     set((state) => ({
-      widgets: state.widgets.map((w) => w.id === id ? { ...w, ...changes } : w),
+      widgets: state.widgets.map((w) => (w.id === id ? { ...w, ...changes } : w)),
     })),
 
   removeWidget: (id) => {
@@ -119,17 +132,17 @@ export const useAppStore = create<AppStore>((set) => ({
 
   updateWidgetPosition: (id, position) =>
     set((state) => ({
-      widgets: state.widgets.map((w) => w.id === id ? { ...w, position } : w),
+      widgets: state.widgets.map((w) => (w.id === id ? { ...w, position } : w)),
     })),
 
   updateWidgetSize: (id, size) =>
     set((state) => ({
-      widgets: state.widgets.map((w) => w.id === id ? { ...w, size } : w),
+      widgets: state.widgets.map((w) => (w.id === id ? { ...w, size } : w)),
     })),
 
-  setTheme:       (theme)       => set({ theme }),
+  setTheme: (theme) => set({ theme }),
   setAccentColor: (accentColor) => set({ accentColor }),
-  setFontSize:    (fontSize)    => set({ fontSize }),
+  setFontSize: (fontSize) => set({ fontSize }),
 
   setOpacity: (id, opacity) =>
     set((state) => ({
@@ -139,16 +152,16 @@ export const useAppStore = create<AppStore>((set) => ({
     })),
 
   setAlwaysOnTop: (alwaysOnTop) => set({ alwaysOnTop }),
-  setAutostart:   (autostart)   => set({ autostart }),
+  setAutostart: (autostart) => set({ autostart }),
 
   setClickThrough: (id, value) =>
     set((state) => ({
-      widgets: state.widgets.map((w) => w.id === id ? { ...w, clickThrough: value } : w),
+      widgets: state.widgets.map((w) => (w.id === id ? { ...w, clickThrough: value } : w)),
     })),
 
   setWidgetMonitor: (id, name) =>
     set((state) => ({
-      widgets: state.widgets.map((w) => w.id === id ? { ...w, monitorName: name } : w),
+      widgets: state.widgets.map((w) => (w.id === id ? { ...w, monitorName: name } : w)),
     })),
 
   resetLayout: () =>
@@ -162,8 +175,6 @@ export const useAppStore = create<AppStore>((set) => ({
 
   toggleFocusMode: () =>
     set((state) => ({ isFocusMode: !state.isFocusMode })),
-
-  setWeatherApiKey: (weatherApiKey) => set({ weatherApiKey }),
 }));
 
 export { DEFAULT_WIDGET_IDS };

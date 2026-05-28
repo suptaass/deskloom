@@ -16,10 +16,19 @@ export interface WidgetCallbacks {
 export interface ContentCallbacks {
   onAddTodo: (widgetId: string, text: string) => void;
   onToggleTodo: (widgetId: string, todoId: string) => void;
+  onUpdateTodo: (
+    widgetId: string,
+    todoId: string,
+    changes: { text?: string; dueDate?: string | null; note?: string }
+  ) => void;
   onDeleteTodo: (widgetId: string, todoId: string) => void;
   onClearCompleted: (widgetId: string) => void;
   onAddNote: (widgetId: string) => void;
-  onUpdateNote: (widgetId: string, noteId: string, changes: { title?: string; content?: string }) => void;
+  onUpdateNote: (
+    widgetId: string,
+    noteId: string,
+    changes: { title?: string; document?: Widget["notes"][number]["document"] }
+  ) => void;
   onDeleteNote: (widgetId: string, noteId: string) => void;
   onUpdateWidgetData: (widgetId: string, data: Record<string, unknown>) => void;
 }
