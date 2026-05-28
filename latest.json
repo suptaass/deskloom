@@ -1,0 +1,11 @@
+{
+  "version": "v0.7.0",
+  "notes": "Settings panel redesign, improved Notes and Todo widgets, Gumroad Premium license system",
+  "pub_date": "2026-05-28T00:00:00Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdG1sbzYwNDI0VzczQndTZnQzM3FKRzRkZmNZaUFSWnhIVmVFODNCcklHTGZ5dXd2dlkwTGJWQ0RVbWZicGVuQmZOU3hXcVN1TUljNTNQY3lqVGlFZHdRbkc4NC90aEFBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc5OTU1MDUwCWZpbGU6RGVza0xvb21fMC43LjBfeDY0LXNldHVwLmV4ZQp3ekhJbGRIQlZSMDFyU3Z2akxkeGNIYmpTaUVvYjN3NHo2VGU2Ty9kc2RwdndGbTNJT1dNbDJueWVJSy9iRHVZb1Z1OEMxL0dOS3Z2eW1YR2pyNENEUT09Cg==",
+      "url": "https://github.com/suptaass/deskloom/releases/download/v0.7.0/DeskLoom_0.7.0_x64-setup.exe"
+    }
+  }
+}
